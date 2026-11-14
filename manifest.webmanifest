@@ -1,2 +1,2 @@
-{"name":"El tiempo en Doña Mencía","short_name":"Tiempo Mencía","start_url":"./","scope":"./","display":"standalone","background_color":"#f5f6f0","theme_color":"#56662a","lang":"es",
+{"name":"El Tiempo de Adolfo","short_name":"Tiempo Adolfo","description":"El tiempo y la lluvia de la campaña en Doña Mencía","start_url":"./","scope":"./","display":"standalone","background_color":"#f2f4ec","theme_color":"#1b5fa0","lang":"es",
 "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
