@@ -14,63 +14,98 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
-/* Layout: una columna estrecha tipo app móvil; la lluvia de campaña es la pieza principal */
+/* Una columna tipo app móvil. Orden: ahora → 48 h → lluvia de campaña → comparar → 10 días → meses */
 :root{
   --bg:#f5f6f0; --surface:#ffffff; --line:#dfe3d3; --fg:#1e2419; --muted:#626b55;
-  --olive:#56662a; --rain:#2b6aa3; --rain-soft:#d6e5f3; --avg:#9aa486; --last:#c08a3e;
-  --frost:#2b6aa3; --hot:#b4472c;
+  --olive:#56662a; --rain:#2b6aa3; --rain-soft:#dce9f5; --avg:#8d977a; --sun:#d9a21b; --cloud:#a9b0b8;
+  --frost:#2b6aa3; --hot:#b4472c; --wa:#1f8f4e;
   --display:"Bricolage Grotesque",system-ui,sans-serif;
   --body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root{
   --bg:#121510; --surface:#1b1f17; --line:#2d3326; --fg:#e8ebe0; --muted:#a1a993;
-  --olive:#aabd6a; --rain:#74ade3; --rain-soft:#1f3347; --avg:#7c8569; --last:#d9a95e;
-  --frost:#74ade3; --hot:#e07a5f; color-scheme:dark}}
+  --olive:#aabd6a; --rain:#74ade3; --rain-soft:#1f3347; --avg:#8e977c; --sun:#f0c04a; --cloud:#7d858d;
+  --frost:#74ade3; --hot:#e07a5f; --wa:#4cc27f; color-scheme:dark}}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
   padding:env(safe-area-inset-top,0) max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
-.wrap{max-width:720px;margin:0 auto;display:grid;gap:18px;padding-top:18px}
-h1,h2{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.wrap{max-width:760px;margin:0 auto;display:grid;gap:18px;padding-top:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
 h1{font-size:1.7rem;line-height:1.1}
 h2{font-size:1.15rem}
+h3{font-size:.95rem}
 .eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .muted{color:var(--muted)}
+.small{font-size:.85rem}
 .num{font-variant-numeric:tabular-nums}
 header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;min-width:0}
+.row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
 .now{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .now .t{font-family:var(--display);font-size:3rem;line-height:1;font-weight:700}
+.now .ic{width:56px;height:56px}
 .now dl{display:grid;grid-template-columns:auto auto;gap:2px 14px;margin:0;font-size:.9rem}
 .now dt{color:var(--muted)} .now dd{margin:0}
 .big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .big .v{font-family:var(--display);font-size:3.4rem;line-height:1;font-weight:700;color:var(--rain)}
 .big .u{font-size:1.1rem;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{border-top:2px solid var(--rain-soft);padding-top:8px;min-width:0}
+.stat b{display:block;font-family:var(--display);font-size:1.35rem;line-height:1.2}
+.stat span{font-size:.8rem;color:var(--muted)}
+@media (max-width:480px){.stats{grid-template-columns:1fr 1fr}.stats .stat:first-child{grid-column:1/-1}}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.85rem}
+.chip.down{border-color:var(--hot);color:var(--hot)}
 .chip.up{border-color:var(--olive);color:var(--olive)}
-.chip.down{border-color:var(--last);color:var(--last)}
-select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
-select:focus-visible,button:focus-visible{outline:2px solid var(--rain);outline-offset:2px}
-button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 12px}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
-.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
-svg{display:block;width:100%;height:auto}
+button,.btn{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:9px;padding:7px 12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+button:focus-visible,.btn:focus-visible{outline:2px solid var(--rain);outline-offset:2px}
+.btn.wa{background:var(--wa);border-color:var(--wa);color:#fff;font-weight:600}
+.toggle{border-radius:999px;padding:5px 11px;font-size:.85rem}
+.toggle[aria-pressed="true"]{border-color:currentColor;font-weight:600;background:var(--bg)}
+.toggle .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.toggle[aria-pressed="false"] .dot{opacity:.35}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 10px;font-size:.85rem}
+.seg button[aria-pressed="true"]{background:var(--olive);color:var(--surface);font-weight:600}
+svg{display:block}
+.chart svg{width:100%;height:auto}
 .scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.9rem}
 th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
 td.r,th.r{text-align:right}
+tr.me td{font-weight:600}
+.tag{font-size:.72rem;border-radius:4px;padding:1px 5px;margin-left:6px;border:1px solid currentColor}
+.tag.wet{color:var(--rain)} .tag.dry{color:var(--hot)}
 .bar{height:6px;border-radius:3px;background:var(--rain)}
 .barbg{background:var(--rain-soft);border-radius:3px;width:90px}
 .frost{color:var(--frost);font-weight:700;text-decoration:underline}
-@media (max-width:560px){.opt{display:none}th,td{padding:7px 4px}table{font-size:.85rem}}
 .hot{color:var(--hot);font-weight:600}
 .status{font-size:.85rem;color:var(--muted)}
-.err{color:var(--hot)}
+.err{color:var(--hot);font-size:.88rem}
+.rainline{font-weight:600}
+.rainline.dry{color:var(--olive)}
+/* carrusel horario */
+.hours{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.h{flex:0 0 76px;scroll-snap-align:start;border:1px solid var(--line);border-radius:12px;padding:8px 6px;display:grid;justify-items:center;gap:3px;text-align:center;font-size:.8rem}
+.h.wet{background:var(--rain-soft);border-color:transparent}
+.h .d{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);min-height:1em}
+.h .hh{font-weight:600;font-size:.9rem}
+.h .ic{width:30px;height:30px}
+.h .tt{font-family:var(--display);font-size:1.1rem;font-weight:700}
+.h .pp{color:var(--rain);font-weight:600}
+.h .mm{color:var(--rain)}
+.h .gg{color:var(--muted)}
+.h.newday{border-left:3px solid var(--olive)}
 footer{font-size:.8rem;color:var(--muted);display:grid;gap:6px}
 footer a{color:inherit}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:9px;font-size:.9rem}
+@media (max-width:560px){.opt{display:none}th,td{padding:7px 4px}table{font-size:.85rem}}
+@media (prefers-reduced-motion:no-preference){.hours{scroll-behavior:smooth}}
 </style>
 </head>
 <body>
@@ -80,39 +115,52 @@ footer a{color:inherit}
       <div class="eyebrow">Doña Mencía · Córdoba · 590 m</div>
       <h1>El tiempo y la lluvia de la campaña</h1>
     </div>
-    <button id="reload" type="button">Actualizar</button>
+    <div class="actions">
+      <a class="btn wa" id="wa" href="#" target="_blank" rel="noopener">Enviar parte por WhatsApp</a>
+      <button id="copy" type="button">Copiar parte</button>
+      <button id="reload" type="button">Actualizar</button>
+    </div>
   </header>
+  <div id="offline" class="err" hidden></div>
 
   <section class="card" aria-labelledby="h-now">
     <div class="eyebrow" id="h-now">Ahora</div>
     <div class="now" id="now"><span class="status">Cargando…</span></div>
   </section>
 
+  <section class="card" aria-labelledby="h-48">
+    <h2 id="h-48">Próximas 48 horas</h2>
+    <div id="rainline" class="rainline">Cargando…</div>
+    <div class="hours" id="hours" tabindex="0" aria-label="Previsión hora a hora"></div>
+    <div class="muted small">Cada tarjeta: temperatura, probabilidad de lluvia, litros previstos y rachas de viento (km/h). Desliza para ver más horas.</div>
+  </section>
+
   <section class="card" aria-labelledby="h-camp">
-    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
-      <h2 id="h-camp">Lluvia acumulada en la campaña</h2>
-      <label class="muted" style="font-size:.85rem">Empieza el
-        <select id="startSel">
-          <option value="10">1 de octubre (año hidrológico)</option>
-          <option value="9">1 de septiembre</option>
-        </select>
-      </label>
-    </div>
+    <h2 id="h-camp">Lluvia de la campaña <span class="muted" id="campName" style="font-weight:500"></span></h2>
     <div class="big"><span class="v num" id="total">–</span><span class="u">litros/m²</span></div>
-    <div class="muted" id="period" style="font-size:.88rem"></div>
+    <div class="muted small" id="period"></div>
     <div class="chips" id="compare"></div>
-    <div class="legend">
-      <span><i style="background:var(--rain)"></i>Esta campaña</span>
-      <span><i style="background:var(--avg)"></i>Media de las 10 anteriores</span>
-      <span><i style="background:var(--last)"></i>Campaña pasada</span>
+    <div class="stats" id="recent"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-cmp">
+    <div class="row">
+      <h2 id="h-cmp">Comparar con otras campañas</h2>
+      <div class="seg" role="group" aria-label="Rango del gráfico">
+        <button type="button" id="vDate" aria-pressed="true">Hasta hoy</button>
+        <button type="button" id="vFull" aria-pressed="false">Campaña completa</button>
+      </div>
     </div>
-    <div id="chart"></div>
+    <div class="muted small">Toca una campaña para añadirla o quitarla del gráfico. «Diferencia» = esta campaña menos aquella, a la misma fecha.</div>
+    <div class="chips" id="picker"></div>
+    <div class="chart" id="chart"><span class="status">Cargando…</span></div>
+    <div class="scroll"><table id="cmpTable"></table></div>
   </section>
 
   <section class="card" aria-labelledby="h-fc">
-    <h2 id="h-fc">Próximos días</h2>
+    <h2 id="h-fc">Próximos 10 días</h2>
     <div class="scroll"><table id="fc"><tbody><tr><td class="status">Cargando…</td></tr></tbody></table></div>
-    <div class="muted" style="font-size:.8rem">Mínimas subrayadas en azul: 0 °C o menos, riesgo de helada. Prob. = probabilidad de lluvia.</div>
+    <div class="muted small">Mínimas subrayadas en azul: 0 °C o menos, riesgo de helada. Prob. = probabilidad de lluvia.</div>
   </section>
 
   <section class="card" aria-labelledby="h-month">
@@ -122,18 +170,22 @@ footer a{color:inherit}
 
   <footer>
     <div id="stamp"></div>
-    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (modelos meteorológicos y reanálisis ERA5, CC BY 4.0). Son estimaciones para el punto 37,553 N · 4,356 O, no la lectura de un pluviómetro: en tormentas sueltas pueden fallar varios litros.</div>
+    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (modelos meteorológicos y reanálisis ERA5, CC BY 4.0). Son estimaciones para el punto 37,553 N · 4,356 O, no la lectura de un pluviómetro: en tormentas sueltas pueden fallar varios litros. Las campañas anteriores salen del reanálisis ERA5, de menor resolución: úsalas para ver la tendencia.</div>
   </footer>
 </div>
+<div class="toast" id="toast" hidden></div>
 
 <script>
-const LAT=37.553, LON=-4.356, TZ="Europe/Madrid";
+const LAT=37.553, LON=-4.356, TZ="Europe/Madrid", START_MONTH=9; // campaña: 1 de septiembre
+const APP_URL="https://isma52489211-hue.github.io/tiempo-dona-mencia/";
 const $=id=>document.getElementById(id);
 const pad=n=>String(n).padStart(2,"0");
 const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
-const utc=s=>{const [y,m,d]=s.split("-").map(Number);return Date.UTC(y,m-1,d)};
+const utc=s=>{const [y,m,d]=s.slice(0,10).split("-").map(Number);return Date.UTC(y,m-1,d)};
 const daysBetween=(a,b)=>Math.round((utc(b)-utc(a))/864e5);
+const addDays=(s,n)=>{const d=new Date(utc(s)+n*864e5);return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())};
 const fmt=(v,dec=1)=>v==null||isNaN(v)?"–":v.toLocaleString("es-ES",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const sgn=(v,dec=1)=>(v>0?"+":v<0?"−":"")+fmt(Math.abs(v),dec);
 const MONTHS=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const DOW=["dom","lun","mar","mié","jue","vie","sáb"];
 const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"Niebla",48:"Niebla con escarcha",
@@ -141,167 +193,260 @@ const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"N
  61:"Lluvia débil",63:"Lluvia",65:"Lluvia fuerte",66:"Lluvia helada",67:"Lluvia helada",
  71:"Nieve débil",73:"Nieve",75:"Nieve fuerte",77:"Granizo fino",80:"Chubascos débiles",81:"Chubascos",82:"Chubascos fuertes",
  85:"Chubascos de nieve",86:"Chubascos de nieve",95:"Tormenta",96:"Tormenta con granizo",99:"Tormenta con granizo"};
+const YEAR_COLORS=["#c08a3e","#8e5bb5","#3f9c8a","#c4566b","#b5a33a","#d07a2c","#d46aa8","#5f8f5a","#7a6a58","#4f7fa8"];
 
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
-const saved=store("dm-start"); if(saved) $("startSel").value=saved;
-
+const q=o=>Object.entries(o).map(([k,v])=>k+"="+encodeURIComponent(v)).join("&");
 async function getJSON(url){
   const r=await fetch(url);
   const j=await r.json().catch(()=>({}));
   if(!r.ok||j.error) throw new Error(j.reason||("HTTP "+r.status));
   return j;
 }
-const q=o=>Object.entries(o).map(([k,v])=>k+"="+encodeURIComponent(v)).join("&");
 
-function campaignStart(month,today){
-  let y=today.getFullYear();
-  let s=new Date(y,month-1,1);
-  if(today<s) s=new Date(y-1,month-1,1);
+/* ---------- iconos ---------- */
+const CLOUD='<path d="M7 19h10.5a4.2 4.2 0 0 0 .3-8.4A5.8 5.8 0 0 0 6.6 10 4.5 4.5 0 0 0 7 19z" fill="var(--cloud)"/>';
+const SUN=(cx,cy,r)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--sun)"/><g stroke="var(--sun)" stroke-width="1.6" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>`<line x1="${cx}" y1="${cy-r-3.2}" x2="${cx}" y2="${cy-r-1.4}" transform="rotate(${a} ${cx} ${cy})"/>`).join("")}</g>`;
+function icon(code,isDay=1){
+  let b;
+  if(code<=1) b=isDay?SUN(12,12,4.5):'<path d="M15 3.5a8.5 8.5 0 1 0 5.5 13.5A7 7 0 0 1 15 3.5z" fill="var(--muted)"/>';
+  else if(code===2) b=(isDay?SUN(9,8,3.4):"")+CLOUD;
+  else if(code===3) b=CLOUD;
+  else if(code===45||code===48) b='<g stroke="var(--cloud)" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="6" y1="13" x2="18" y2="13"/><line x1="4" y1="17" x2="20" y2="17"/></g>';
+  else if(code>=95) b='<g transform="translate(0,-4)">'+CLOUD+'</g><path d="M12.5 14l-3 5h2.5l-1 4 4-6h-2.5l1.5-3z" fill="var(--sun)"/>';
+  else b='<g transform="translate(0,-3)">'+CLOUD+'</g><g stroke="var(--rain)" stroke-width="1.8" stroke-linecap="round"><line x1="8" y1="19" x2="7" y2="22"/><line x1="12" y1="19" x2="11" y2="22"/><line x1="16" y1="19" x2="15" y2="22"/></g>';
+  return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${b}</svg>`;
+}
+
+/* ---------- estado ---------- */
+const S={fc:null,cur:null,hist:null,view:"date",selected:null,fromCache:[]};
+try{S.selected=new Set(JSON.parse(store("dm-sel")||"null")||[])}catch(e){S.selected=null}
+try{S.view=store("dm-view")||"date"}catch(e){}
+
+function campaignStart(today){
+  let s=new Date(today.getFullYear(),START_MONTH-1,1);
+  if(today<s) s=new Date(today.getFullYear()-1,START_MONTH-1,1);
   return s;
 }
+const campLabel=y=>y+"/"+String(y+1).slice(2);
 
-/* ---------- Previsión ---------- */
-async function loadForecast(){
-  const url="https://api.open-meteo.com/v1/forecast?"+q({latitude:LAT,longitude:LON,timezone:TZ,forecast_days:10,
-    current:"temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m",
-    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max"});
-  try{
-    const j=await getJSON(url); store("dm-fc",JSON.stringify(j)); renderNow(j); renderForecast(j); return j;
-  }catch(e){
-    const old=store("dm-fc");
-    if(old){try{const j=JSON.parse(old);renderNow(j);renderForecast(j);
-      $("now").insertAdjacentHTML("afterbegin",'<div class="err" style="width:100%">Sin conexión: datos guardados de la última vez.</div>');return j;}catch(_){}}
-    $("now").innerHTML='<span class="err">No se pudo cargar la previsión ('+e.message+'). Pulsa Actualizar.</span>';
-    $("fc").innerHTML='<tbody><tr><td class="err">Sin datos de previsión.</td></tr></tbody>';
-  }
-}
-function renderNow(j){
-  const c=j.current;
-  $("now").innerHTML=`<div class="t num">${fmt(c.temperature_2m,0)}°</div>
-   <div><div style="font-weight:600">${WMO[c.weather_code]||""}</div>
-   <dl class="num"><dt>Sensación</dt><dd>${fmt(c.apparent_temperature,0)} °C</dd>
-   <dt>Humedad</dt><dd>${fmt(c.relative_humidity_2m,0)} %</dd>
-   <dt>Viento</dt><dd>${fmt(c.wind_speed_10m,0)} km/h (rachas ${fmt(c.wind_gusts_10m,0)})</dd>
-   <dt>Lloviendo ahora</dt><dd>${fmt(c.precipitation)} L/m²</dd></dl></div>`;
-}
-function renderForecast(j){
-  const d=j.daily; const today=ymd(new Date());
-  let rows=d.time.map((t,i)=>{
-    const dt=new Date(utc(t)); const lbl=t===today?"Hoy":DOW[dt.getUTCDay()]+" "+dt.getUTCDate();
-    const mn=d.temperature_2m_min[i], mx=d.temperature_2m_max[i];
-    const p=d.precipitation_sum[i], pp=d.precipitation_probability_max[i];
-    return `<tr><td>${lbl}</td><td>${WMO[d.weather_code[i]]||""}</td>
-     <td class="r num ${mn<=0?"frost":""}">${fmt(mn,0)}°</td>
-     <td class="r num ${mx>=35?"hot":""}">${fmt(mx,0)}°</td>
-     <td class="r num">${p>0?fmt(p):"–"}</td><td class="r num">${pp==null?"–":pp+" %"}</td>
-     <td class="r num opt">${fmt(d.wind_gusts_10m_max[i],0)}</td></tr>`}).join("");
-  const sum=d.precipitation_sum.reduce((a,b)=>a+(b||0),0);
-  $("fc").innerHTML=`<thead><tr><th>Día</th><th>Cielo</th><th class="r">Mín</th><th class="r">Máx</th><th class="r">L/m²</th><th class="r">Prob.</th><th class="r opt">Rachas km/h</th></tr></thead><tbody>${rows}</tbody>
-   <tfoot><tr><td colspan="4" class="muted">Lluvia prevista en 10 días</td><td class="r num" style="font-weight:600">${fmt(sum)}</td><td></td><td class="opt"></td></tr></tfoot>`;
-}
+async function loadAll(){
+  $("offline").hidden=true; S.fromCache=[];
+  const now=new Date(); const start=campaignStart(now); const startS=ymd(start); const sy=start.getFullYear();
+  const yestS=ymd(new Date(now.getFullYear(),now.getMonth(),now.getDate()-1));
+  S.start=start; S.startS=startS; S.sy=sy;
 
-/* ---------- Campaña ---------- */
-async function loadCampaign(){
-  const month=Number($("startSel").value);
-  const now=new Date(); const start=campaignStart(month,now);
-  const startS=ymd(start); const yest=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1); const yestS=ymd(yest);
-  $("total").textContent="…"; $("compare").innerHTML=""; $("chart").innerHTML='<span class="status">Cargando…</span>';
+  const pF=getJSON("https://api.open-meteo.com/v1/forecast?"+q({latitude:LAT,longitude:LON,timezone:TZ,past_days:1,forecast_days:10,
+    current:"temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day",
+    hourly:"temperature_2m,precipitation_probability,precipitation,wind_gusts_10m,weather_code,is_day",
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max"}))
+    .then(j=>{store("dm-fc",JSON.stringify(j));return j})
+    .catch(()=>{const o=store("dm-fc");if(o){S.fromCache.push("previsión");return JSON.parse(o)}return null});
 
-  // Esta campaña: modelos de alta resolución archivados (sin retraso)
-  let cur=null;
-  if(yestS>=startS){
-    const base={latitude:LAT,longitude:LON,timezone:TZ,start_date:startS,end_date:yestS,daily:"precipitation_sum"};
-    try{ cur=await getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q(base)); }
-    catch(e){ try{ cur=await getJSON("https://archive-api.open-meteo.com/v1/archive?"+q(base)); }catch(e2){ cur=null; } }
-  } else cur={daily:{time:[],precipitation_sum:[]}};
+  const base={latitude:LAT,longitude:LON,timezone:TZ,start_date:startS,end_date:yestS,daily:"precipitation_sum"};
+  const pC=(yestS<startS?Promise.resolve({daily:{time:[],precipitation_sum:[]}}):
+    getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q(base))
+      .catch(()=>getJSON("https://archive-api.open-meteo.com/v1/archive?"+q(base))))
+    .then(j=>{store("dm-cur",JSON.stringify({s:startS,j}));return j})
+    .catch(()=>{try{const o=JSON.parse(store("dm-cur")||"null");if(o&&o.s===startS){S.fromCache.push("lluvia de la campaña");return o.j}}catch(e){}return null});
 
-  // 10 campañas anteriores: reanálisis ERA5
-  const hStart=new Date(start.getFullYear()-10,month-1,1); const hEnd=new Date(start.getFullYear(),month-1,0);
-  let hist=null;
-  try{ hist=await getJSON("https://archive-api.open-meteo.com/v1/archive?"+q({latitude:LAT,longitude:LON,timezone:TZ,start_date:ymd(hStart),end_date:ymd(hEnd),daily:"precipitation_sum"})); }
-  catch(e){ hist=null; }
+  // 10 campañas anteriores: no cambian, se guardan y solo se descargan una vez por campaña
+  let pH; let cachedH=null;
+  try{const o=JSON.parse(store("dm-hist")||"null");if(o&&o.s===startS)cachedH=o.j}catch(e){}
+  if(cachedH) pH=Promise.resolve(cachedH);
+  else pH=getJSON("https://archive-api.open-meteo.com/v1/archive?"+q({latitude:LAT,longitude:LON,timezone:TZ,
+      start_date:ymd(new Date(sy-10,START_MONTH-1,1)),end_date:ymd(new Date(sy,START_MONTH-1,0)),daily:"precipitation_sum"}))
+    .then(j=>{store("dm-hist",JSON.stringify({s:startS,j}));return j}).catch(()=>null);
 
-  const ck="dm-camp-"+month;
-  if(cur&&hist){store(ck,JSON.stringify({s:startS,cur,hist}));}
-  else{try{const o=JSON.parse(store(ck)||"null");if(o&&o.s===startS){cur=cur||o.cur;hist=hist||o.hist;}}catch(_){}}
-  if(!cur){ $("total").textContent="–"; $("chart").innerHTML='<span class="err">No se pudo cargar la lluvia de la campaña. Pulsa Actualizar.</span>'; return; }
-  renderCampaign(start,month,cur.daily,hist&&hist.daily);
-}
-
-function cumulative(daily,startS,len){
-  const out=new Array(len).fill(null); const byIdx=new Array(len).fill(0);
-  let last=-1;
-  daily.time.forEach((t,i)=>{const k=daysBetween(startS,t); if(k>=0&&k<len){byIdx[k]=daily.precipitation_sum[i]||0; if(daily.precipitation_sum[i]!=null) last=Math.max(last,k);}});
-  let s=0; for(let k=0;k<=last;k++){s+=byIdx[k]; out[k]=s;}
-  return {cum:out,daily:byIdx,last};
-}
-
-function renderCampaign(start,month,curD,histD){
-  const startS=ymd(start); const LEN=365;
-  const c=cumulative(curD,startS,LEN);
-  const total=c.last>=0?c.cum[c.last]:0;
-  $("total").textContent=fmt(total);
-  const lastDate=c.last>=0?new Date(utc(startS)+c.last*864e5):null;
-  $("period").textContent=`Desde el ${start.getDate()} de ${MONTHS[start.getMonth()]} de ${start.getFullYear()}`+(lastDate?` hasta el ${lastDate.getUTCDate()} de ${MONTHS[lastDate.getUTCMonth()]} (incluido)`:" · la campaña empieza hoy");
-
-  let mean=null, prev=null, prevYears=[];
-  if(histD){
-    for(let k=1;k<=10;k++){
-      const s=ymd(new Date(start.getFullYear()-k,month-1,1));
-      const r=cumulative(histD,s,LEN); if(r.last>=LEN-1) prevYears.push(r);
-    }
-    if(prevYears.length){
-      mean=new Array(LEN).fill(0).map((_,i)=>prevYears.reduce((a,r)=>a+r.cum[i],0)/prevYears.length);
-      prev=prevYears[0].cum; // la más reciente
-    }
-  }
-  // Comparativas
-  const chips=[];
-  if(mean&&c.last>=0){
-    const m=mean[c.last], diff=total-m, pct=m>0?Math.round(diff/m*100):0;
-    chips.push(`<span class="chip ${diff>=0?"up":"down"} num">${diff>=0?"+":""}${fmt(diff)} L/m² frente a la media a estas fechas (${fmt(m,0)})${m>0?` · ${pct>=0?"+":""}${pct} %`:""}</span>`);
-    chips.push(`<span class="chip num">Campaña pasada a estas fechas: ${fmt(prev[c.last],0)} L/m²</span>`);
-    chips.push(`<span class="chip num">Media de una campaña completa: ${fmt(mean[LEN-1],0)} L/m²</span>`);
-  } else if(!histD){ chips.push('<span class="chip">Sin datos de años anteriores para comparar</span>'); }
-  $("compare").innerHTML=chips.join("");
-  drawChart(startS,c,mean,prev);
-  renderMonths(start,c,prevYears);
+  pF.then(fc=>{S.fc=fc;renderForecast()});
+  const [fc,cur,hist]=await Promise.all([pF,pC,pH]);
+  S.fc=fc;S.cur=cur;S.hist=hist;
+  renderCampaign();
+  if(S.fromCache.length){$("offline").hidden=false;$("offline").textContent="Sin conexión: se muestran los datos guardados la última vez ("+S.fromCache.join(" y ")+").";}
   $("stamp").textContent="Actualizado: "+new Date().toLocaleString("es-ES",{dateStyle:"medium",timeStyle:"short"});
+  buildShare();
 }
 
-function drawChart(startS,c,mean,prev){
-  const W=680,H=260,L=44,R=12,T=12,B=28;
-  const LEN=Math.min(365,Math.max(90,c.last+60)); // vista: campaña hasta hoy + 2 meses
-  const ymax=Math.max(10,...[c.last>=0?c.cum[c.last]:0, mean?mean[LEN-1]:0, prev?prev[LEN-1]:0]);
-  const step=ymax>400?100:ymax>150?50:ymax>60?20:10; const top=Math.ceil(ymax/step)*step;
-  const x=i=>L+(W-L-R)*i/(LEN-1), y=v=>T+(H-T-B)*(1-v/top);
-  const path=(arr,end)=>{let d="";for(let i=0;i<=end;i++){if(arr[i]==null)break;d+=(i?"L":"M")+x(i).toFixed(1)+" "+y(arr[i]).toFixed(1)}return d};
-  let g="";
-  for(let v=0;v<=top;v+=step) g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;
-  // meses
-  const s=new Date(utc(startS));
-  for(let m=0;m<12;m++){const d=Date.UTC(s.getUTCFullYear(),s.getUTCMonth()+m,1); const i=Math.round((d-utc(startS))/864e5); if(i>=LEN)break;
-    g+=`<line x1="${x(i)}" x2="${x(i)}" y1="${H-B}" y2="${H-B+4}" stroke="var(--muted)"/><text x="${x(i)+3}" y="${H-8}" font-size="11" fill="var(--muted)">${MONTHS[new Date(d).getUTCMonth()]}</text>`;}
-  let lines="";
-  if(prev) lines+=`<path d="${path(prev,LEN-1)}" fill="none" stroke="var(--last)" stroke-width="1.5" opacity=".75"/>`;
-  if(mean) lines+=`<path d="${path(mean,LEN-1)}" fill="none" stroke="var(--avg)" stroke-width="2" stroke-dasharray="5 4"/>`;
-  if(c.last>=0){
-    const d=path(c.cum,c.last);
-    lines+=`<path d="${d}L${x(c.last)} ${y(0)}L${x(0)} ${y(0)}Z" fill="var(--rain-soft)" opacity=".7"/><path d="${d}" fill="none" stroke="var(--rain)" stroke-width="2.6"/>
-      <circle cx="${x(c.last)}" cy="${y(c.cum[c.last])}" r="4.5" fill="var(--rain)"/>`;
+/* ---------- previsión ---------- */
+function nowIndex(h,cur){let k=0;for(let i=0;i<h.time.length;i++){if(h.time[i]<=cur.time)k=i;else break}return k}
+function dayWord(t,today){const d=daysBetween(today,t);if(d===0)return"hoy";if(d===1)return"mañana";const x=new Date(utc(t));return"el "+DOW[x.getUTCDay()]+" "+x.getUTCDate()}
+function renderForecast(){
+  const j=S.fc;
+  if(!j){$("now").innerHTML='<span class="err">No se pudo cargar la previsión. Pulsa Actualizar.</span>';$("rainline").textContent="";$("fc").innerHTML='<tbody><tr><td class="err">Sin datos de previsión.</td></tr></tbody>';return}
+  const c=j.current, today=c.time.slice(0,10), d=j.daily, ti=d.time.indexOf(today);
+  $("now").innerHTML=`${icon(c.weather_code,c.is_day)}<div class="t num">${fmt(c.temperature_2m,0)}°</div>
+   <div><div style="font-weight:600">${WMO[c.weather_code]||""}</div>
+   <dl class="num"><dt>Hoy</dt><dd>${ti>=0?`máx ${fmt(d.temperature_2m_max[ti],0)}° · mín ${fmt(d.temperature_2m_min[ti],0)}°`:"–"}</dd>
+   <dt>Sensación</dt><dd>${fmt(c.apparent_temperature,0)} °C</dd>
+   <dt>Humedad</dt><dd>${fmt(c.relative_humidity_2m,0)} %</dd>
+   <dt>Viento</dt><dd>${fmt(c.wind_speed_10m,0)} km/h (rachas ${fmt(c.wind_gusts_10m,0)})</dd></dl></div>`;
+
+  // horas
+  const h=j.hourly, k0=nowIndex(h,c), end=Math.min(h.time.length,k0+48);
+  let cards="";
+  for(let i=k0;i<end;i++){
+    const t=h.time[i], hr=+t.slice(11,13), p=h.precipitation[i]||0, pp=h.precipitation_probability[i];
+    const newday=hr===0&&i!==k0;
+    const dl=i===k0?"ahora":newday?dayWord(t,today):"";
+    cards+=`<div class="h ${p>=0.1?"wet":""} ${newday?"newday":""}"><div class="d">${dl}</div><div class="hh num">${pad(hr)} h</div>${icon(h.weather_code[i],h.is_day[i])}
+      <div class="tt num">${fmt(h.temperature_2m[i],0)}°</div><div class="pp num">${pp==null?"–":pp+" %"}</div>
+      <div class="mm num">${p>=0.1?fmt(p)+" L":"–"}</div><div class="gg num">${fmt(h.wind_gusts_10m[i],0)} km/h</div></div>`;
   }
-  $("chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Lluvia acumulada en litros por metro cuadrado">${g}${lines}<text x="${L}" y="${T-1}" font-size="10" fill="var(--muted)">L/m²</text></svg>`;
+  $("hours").innerHTML=cards; $("hours").scrollLeft=0;
+  $("rainline").className="rainline"; const txt=rainSummary(j,k0,end,today); $("rainline").textContent=txt.text; if(txt.dry)$("rainline").classList.add("dry");
+
+  // 10 días desde hoy
+  const idx=d.time.map((t,i)=>i).filter(i=>d.time[i]>=today);
+  let sum=0;
+  const rows=idx.map(i=>{const t=d.time[i];const dt=new Date(utc(t));const lbl=t===today?"Hoy":DOW[dt.getUTCDay()]+" "+dt.getUTCDate();
+    const mn=d.temperature_2m_min[i],mx=d.temperature_2m_max[i],p=d.precipitation_sum[i],pp=d.precipitation_probability_max[i];sum+=p||0;
+    return `<tr><td>${lbl}</td><td>${WMO[d.weather_code[i]]||""}</td><td class="r num ${mn<=0?"frost":""}">${fmt(mn,0)}°</td>
+     <td class="r num ${mx>=35?"hot":""}">${fmt(mx,0)}°</td><td class="r num">${p>0?fmt(p):"–"}</td><td class="r num">${pp==null?"–":pp+" %"}</td>
+     <td class="r num opt">${fmt(d.wind_gusts_10m_max[i],0)}</td></tr>`}).join("");
+  $("fc").innerHTML=`<thead><tr><th>Día</th><th>Cielo</th><th class="r">Mín</th><th class="r">Máx</th><th class="r">L/m²</th><th class="r">Prob.</th><th class="r opt">Rachas km/h</th></tr></thead><tbody>${rows}</tbody>
+   <tfoot><tr><td colspan="4" class="muted">Lluvia prevista en ${idx.length} días</td><td class="r num" style="font-weight:600">${fmt(sum)}</td><td></td><td class="opt"></td></tr></tfoot>`;
+}
+function rainSummary(j,k0,end,today){
+  const h=j.hourly, eps=[]; let e=null;
+  for(let i=k0;i<end;i++){const p=h.precipitation[i]||0;
+    if(p>=0.1){if(!e)e={a:i,b:i,s:0,pp:0};e.b=i;e.s+=p;e.pp=Math.max(e.pp,h.precipitation_probability[i]||0)}
+    else if(e){eps.push(e);e=null}}
+  if(e)eps.push(e);
+  const real=eps.filter(x=>x.s>=0.2);
+  if(!real.length) return {text:"Sin lluvia prevista en las próximas 48 horas.",dry:true,short:"sin lluvia prevista en 48 h"};
+  const desc=x=>{const ta=h.time[x.a], tb=h.time[Math.min(x.b+1,h.time.length-1)];
+    const startTxt=x.a===k0?"lloviendo ahora":`${dayWord(ta,today)} desde las ${+ta.slice(11,13)} h`;
+    const sameDay=ta.slice(0,10)===tb.slice(0,10)||x.a===k0;
+    const endTxt=`hasta las ${+tb.slice(11,13)} h${sameDay?"":" de "+dayWord(tb,today).replace(/^el /,"")}`;
+    return `${startTxt} ${endTxt} (≈${fmt(x.s)} L/m², prob. ${x.pp} %)`};
+  const parts=real.slice(0,3).map(desc);
+  const t="Lluvia: "+parts.join("; ")+(real.length>3?"; y más chubascos después":"")+".";
+  return {text:t.charAt(0).toUpperCase()+t.slice(1),dry:false,short:parts.join("; ")};
 }
 
-function renderMonths(start,c,prevYears){
-  const startS=ymd(start); const rows=[]; let maxv=1;
+/* ---------- campaña ---------- */
+function series(daily,startS,len){
+  const v=new Array(len).fill(0); let last=-1;
+  if(daily) daily.time.forEach((t,i)=>{const k=daysBetween(startS,t);const p=daily.precipitation_sum[i];if(k>=0&&k<len&&p!=null){v[k]=p;last=Math.max(last,k)}});
+  const cum=[];let s=0;for(let k=0;k<=last;k++){s+=v[k];cum.push(s)}
+  return {daily:v,cum,last};
+}
+function todaySoFar(){
+  const j=S.fc;if(!j)return {today:null,mm:0,last24:0};
+  const h=j.hourly,c=j.current,today=c.time.slice(0,10),k0=nowIndex(h,c);let mm=0,l24=0;
+  for(let i=0;i<=k0;i++){const p=h.precipitation[i]||0;if(h.time[i].slice(0,10)===today)mm+=p;if(i>k0-24)l24+=p}
+  return {today,mm,last24:l24};
+}
+function renderCampaign(){
+  const startS=S.startS, sy=S.sy;
+  $("campName").textContent=campLabel(sy);
+  if(!S.cur){$("total").textContent="–";$("period").innerHTML='<span class="err">No se pudo cargar la lluvia de la campaña. Pulsa Actualizar.</span>';$("chart").innerHTML="";return}
+  const cur=series(S.cur.daily,startS,366);
+  const td=todaySoFar();
+  const todayIdx=td.today?daysBetween(startS,td.today):cur.last+1;
+  // serie actual: hasta ayer + hoy hasta ahora
+  const curCum=cur.cum.slice(); const curDaily=cur.daily.slice(0,Math.max(todayIdx+1,0));
+  if(td.today&&todayIdx===curCum.length){curDaily[todayIdx]=td.mm;curCum.push((curCum[curCum.length-1]||0)+td.mm)}
+  const total=curCum.length?curCum[curCum.length-1]:0, li=curCum.length-1;
+  S.total=total;S.curCum=curCum;S.curDaily=curDaily;S.li=li;
+
+  // campañas anteriores
+  const prev=[];
+  if(S.hist){for(let k=1;k<=10;k++){const y=sy-k, s=ymd(new Date(y,START_MONTH-1,1)), len=daysBetween(s,ymd(new Date(y+1,START_MONTH-1,1)));
+    const r=series(S.hist.daily,s,len); if(r.last>=len-5) prev.push({y,label:campLabel(y),cum:r.cum,daily:r.daily,total:r.cum[r.cum.length-1],color:YEAR_COLORS[(k-1)%10]})}}
+  S.prev=prev;
+  let mean=null;
+  if(prev.length){mean=[];for(let i=0;i<365;i++)mean.push(prev.reduce((a,r)=>a+(r.cum[Math.min(i,r.cum.length-1)]),0)/prev.length)}
+  S.mean=mean;
+  if(prev.length){const sorted=[...prev].sort((a,b)=>a.total-b.total);sorted[0].tag="dry";sorted[sorted.length-1].tag="wet"}
+  if(!S.selected||!S.selected.size&&store("dm-sel")==null) S.selected=new Set(["mean",prev[0]?String(prev[0].y):""]);
+
+  $("total").textContent=fmt(total);
+  const lastDay=li>=0?new Date(utc(startS)+li*864e5):null;
+  $("period").textContent=`Desde el 1 de septiembre de ${sy}`+(lastDay?` hasta hoy, ${lastDay.getUTCDate()} de ${MONTHS[lastDay.getUTCMonth()]} (incluye lo que llevamos de hoy)`:"");
+  const chips=[];
+  if(mean&&li>=0){const m=mean[Math.min(li,364)],diff=total-m,pct=m>0?Math.round(diff/m*100):0;
+    S.vsMean={diff,pct,m};
+    chips.push(`<span class="chip ${diff>=0?"up":"down"} num">${sgn(diff)} L/m² frente a la media a estas fechas (${fmt(m,0)}) · ${pct>0?"+":pct<0?"−":""}${Math.abs(pct)} %</span>`);
+    if(prev[0])chips.push(`<span class="chip num">Campaña ${prev[0].label} a estas fechas: ${fmt(prev[0].cum[Math.min(li,prev[0].cum.length-1)],0)} L/m²</span>`);
+    chips.push(`<span class="chip num">Media de una campaña completa: ${fmt(mean[364],0)} L/m²</span>`)}
+  else if(!S.hist) chips.push('<span class="chip">Sin datos de años anteriores para comparar</span>');
+  $("compare").innerHTML=chips.join("");
+
+  renderRecent(td);
+  renderPicker(); drawChart(); renderCmpTable(); renderMonths();
+}
+function renderRecent(td){
+  const d=S.curDaily, startS=S.startS, n=d.length;
+  // último episodio: último día con ≥0,5 L y los días seguidos con ≥0,2 L
+  let e=-1;for(let k=n-1;k>=0;k--){if((d[k]||0)>=0.5){e=k;break}}
+  let epTxt="Sin lluvia en la campaña",epSub="";
+  if(e>=0){let a=e;while(a>0&&(d[a-1]||0)>=0.2)a--;let b=e;while(b+1<n&&(d[b+1]||0)>=0.2)b++;
+    let s=0;for(let k=a;k<=b;k++)s+=d[k]||0;
+    const da=new Date(utc(startS)+a*864e5),db=new Date(utc(startS)+b*864e5);
+    const dtxt=a===b?`${da.getUTCDate()} ${MONTHS[da.getUTCMonth()]}`:`${da.getUTCDate()} ${da.getUTCMonth()!==db.getUTCMonth()?MONTHS[da.getUTCMonth()]+" ":""}al ${db.getUTCDate()} ${MONTHS[db.getUTCMonth()]}`;
+    const ago=n-1-b;
+    epTxt=fmt(s)+" L/m²";epSub=`Última lluvia: ${dtxt} · ${ago===0?"sigue hoy":ago===1?"ayer":"hace "+ago+" días"}`;
+    S.lastEp={s,dtxt,ago}}
+  else S.lastEp=null;
+  let w=0;for(let k=Math.max(0,n-7);k<n;k++)w+=d[k]||0;
+  $("recent").innerHTML=`<div class="stat"><b class="num">${epTxt}</b><span>${epSub||"Desde el 1 de septiembre"}</span></div>
+    <div class="stat"><b class="num">${fmt(w)} L/m²</b><span>Últimos 7 días</span></div>
+    <div class="stat"><b class="num">${fmt(td.last24)} L/m²</b><span>Últimas 24 horas</span></div>`;
+}
+function renderPicker(){
+  const items=[];
+  if(S.mean)items.push({key:"mean",label:"Media 10 años",color:"var(--avg)"});
+  S.prev.forEach(p=>items.push({key:String(p.y),label:p.label+(p.tag==="wet"?" (la más lluviosa)":p.tag==="dry"?" (la más seca)":""),color:p.color}));
+  $("picker").innerHTML=`<span class="chip" style="border-color:var(--rain);color:var(--rain);font-weight:600"><span class="dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--rain);margin-right:6px"></span>${campLabel(S.sy)} (esta)</span>`+
+    items.map(it=>`<button type="button" class="toggle" data-k="${it.key}" aria-pressed="${S.selected.has(it.key)}"><span class="dot" style="background:${it.color}"></span>${it.label}</button>`).join("");
+  $("picker").querySelectorAll("button").forEach(b=>b.onclick=()=>{const k=b.dataset.k;S.selected.has(k)?S.selected.delete(k):S.selected.add(k);
+    b.setAttribute("aria-pressed",S.selected.has(k));store("dm-sel",JSON.stringify([...S.selected]));drawChart();renderCmpTable()});
+}
+function drawChart(){
+  const cw=$("chart").clientWidth||680, W=Math.max(300,Math.round(cw)), H=Math.round(Math.min(300,Math.max(220,W*0.5))), L=40,R=10,T=16,B=28,li=S.li;
+  const LEN=S.view==="full"?365:Math.min(365,Math.max(75,li+45));
+  const lines=[];
+  if(S.mean&&S.selected.has("mean"))lines.push({cum:S.mean,color:"var(--avg)",w:2,dash:"5 4"});
+  S.prev.forEach(p=>{if(S.selected.has(String(p.y)))lines.push({cum:p.cum,color:p.color,w:1.6,label:p.label})});
+  let ymax=10;
+  lines.forEach(l=>ymax=Math.max(ymax,l.cum[Math.min(LEN-1,l.cum.length-1)]));
+  if(li>=0)ymax=Math.max(ymax,S.curCum[li]);
+  const step=ymax>600?200:ymax>300?100:ymax>150?50:ymax>60?20:10, top=Math.ceil(ymax/step)*step;
+  const x=i=>L+(W-L-R)*i/(LEN-1), y=v=>T+(H-T-B)*(1-v/top);
+  const path=(arr,end)=>{let d="";for(let i=0;i<=Math.min(end,arr.length-1);i++)d+=(i?"L":"M")+x(i).toFixed(1)+" "+y(arr[i]).toFixed(1);return d};
+  let g="";
+  for(let v=0;v<=top;v+=step)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;
+  const s=new Date(utc(S.startS));
+  for(let m=0;m<13;m++){const d=Date.UTC(s.getUTCFullYear(),s.getUTCMonth()+m,1),i=Math.round((d-utc(S.startS))/864e5);if(i>=LEN)break;
+    g+=`<line x1="${x(i)}" x2="${x(i)}" y1="${H-B}" y2="${H-B+4}" stroke="var(--muted)"/>`;
+    if(x(i)+22<W-R)g+=`<text x="${x(i)+3}" y="${H-8}" font-size="11" fill="var(--muted)">${MONTHS[new Date(d).getUTCMonth()]}</text>`}
+  if(li>=0&&li<LEN)g+=`<line x1="${x(li)}" x2="${x(li)}" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="2 3"/><text x="${x(li)+4}" y="${T+10}" font-size="10" fill="var(--muted)">hoy</text>`;
+  let ls=lines.map(l=>`<path d="${path(l.cum,LEN-1)}" fill="none" stroke="${l.color}" stroke-width="${l.w}" ${l.dash?`stroke-dasharray="${l.dash}"`:""} opacity=".9"/>`).join("");
+  if(li>=0){const d=path(S.curCum,li);
+    ls+=`<path d="${d}L${x(li)} ${y(0)}L${x(0)} ${y(0)}Z" fill="var(--rain-soft)" opacity=".6"/><path d="${d}" fill="none" stroke="var(--rain)" stroke-width="2.8"/><circle cx="${x(li)}" cy="${y(S.curCum[li])}" r="4.5" fill="var(--rain)"/>`}
+  $("chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Lluvia acumulada día a día, en litros por metro cuadrado">${g}${ls}<text x="${L}" y="${T-3}" font-size="10" fill="var(--muted)">L/m²</text></svg>`;
+}
+function renderCmpTable(){
+  const li=S.li; if(!S.prev.length){$("cmpTable").innerHTML="";return}
+  const curTot=S.total;
+  const row=(name,color,at,full,me,tag,sel)=>`<tr class="${me?"me":""}"><td><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color};margin-right:7px;opacity:${sel?1:.3}"></span>${name}${tag==="wet"?'<span class="tag wet">más lluviosa</span>':tag==="dry"?'<span class="tag dry">más seca</span>':""}</td>
+    <td class="r num">${fmt(at)}</td><td class="r num">${me?"":`<span class="${curTot-at<0?"hot":""}">${sgn(curTot-at)}</span>`}</td><td class="r num opt">${full==null?"–":fmt(full,0)}</td></tr>`;
+  let html=`<thead><tr><th>Campaña</th><th class="r">A esta fecha</th><th class="r">Diferencia</th><th class="r opt">Total campaña</th></tr></thead><tbody>`;
+  html+=row(campLabel(S.sy)+" (esta)","var(--rain)",curTot,null,true,null,true);
+  if(S.mean)html+=row("Media 10 años","var(--avg)",S.mean[Math.min(li,364)],S.mean[364],false,null,S.selected.has("mean"));
+  S.prev.forEach(p=>html+=row(p.label,p.color,p.cum[Math.min(li,p.cum.length-1)],p.total,false,p.tag,S.selected.has(String(p.y))));
+  $("cmpTable").innerHTML=html+"</tbody>";
+}
+function renderMonths(){
+  const startS=S.startS, d=S.curDaily, rows=[]; let maxv=1;
   for(let m=0;m<12;m++){
-    const a=new Date(start.getFullYear(),start.getMonth()+m,1), b=new Date(start.getFullYear(),start.getMonth()+m+1,1);
-    const i0=daysBetween(startS,ymd(a)), i1=Math.min(365,daysBetween(startS,ymd(b)));
-    const cur=c.last>=i0?c.daily.slice(i0,Math.min(i1,c.last+1)).reduce((x,y)=>x+y,0):null;
-    const avg=prevYears.length?prevYears.reduce((acc,r)=>acc+r.daily.slice(i0,i1).reduce((x,y)=>x+y,0),0)/prevYears.length:null;
+    const a=new Date(S.sy,START_MONTH-1+m,1), b=new Date(S.sy,START_MONTH+m,1);
+    const i0=daysBetween(startS,ymd(a)), i1=daysBetween(startS,ymd(b));
+    const cur=d.length>i0?d.slice(i0,Math.min(i1,d.length)).reduce((x,y)=>x+(y||0),0):null;
+    const avg=S.prev.length?S.prev.reduce((acc,r)=>{const ra=daysBetween(ymd(new Date(r.y,START_MONTH-1,1)),ymd(new Date(r.y,START_MONTH-1+m,1))),rb=daysBetween(ymd(new Date(r.y,START_MONTH-1,1)),ymd(new Date(r.y,START_MONTH+m,1)));return acc+r.daily.slice(ra,rb).reduce((x,y)=>x+y,0)},0)/S.prev.length:null;
     maxv=Math.max(maxv,cur||0,avg||0);
-    rows.push({lbl:MONTHS[a.getMonth()]+" "+String(a.getFullYear()).slice(2),cur,avg,partial:c.last>=i0&&c.last<i1-1});
+    rows.push({lbl:MONTHS[a.getMonth()]+" "+String(a.getFullYear()).slice(2),cur,avg,partial:d.length>i0&&d.length<i1});
   }
   $("months").innerHTML=`<thead><tr><th>Mes</th><th class="r">Esta campaña</th><th></th><th class="r">Media</th></tr></thead><tbody>`+rows.map(r=>`<tr>
     <td>${r.lbl}</td><td class="r num">${r.cur==null?"–":fmt(r.cur)}${r.partial?' <span class="muted">(en curso)</span>':""}</td>
@@ -309,9 +454,35 @@ function renderMonths(start,c,prevYears){
     <td class="r num muted">${r.avg==null?"–":fmt(r.avg,0)}</td></tr>`).join("")+"</tbody>";
 }
 
-function loadAll(){ loadForecast(); loadCampaign(); }
-$("startSel").addEventListener("change",e=>{store("dm-start",e.target.value); loadCampaign();});
-$("reload").addEventListener("click",loadAll);
+/* ---------- compartir ---------- */
+function buildShare(){
+  const L=[]; const j=S.fc; const now=new Date();
+  L.push(`🌦️ *Doña Mencía · ${DOW[now.getDay()]} ${now.getDate()} ${MONTHS[now.getMonth()]}*`);
+  if(j){const c=j.current,today=c.time.slice(0,10),d=j.daily,ti=d.time.indexOf(today);
+    L.push(`Ahora: ${fmt(c.temperature_2m,0)}° · ${WMO[c.weather_code]||""}`);
+    if(ti>=0)L.push(`Hoy: máx ${fmt(d.temperature_2m_max[ti],0)}° / mín ${fmt(d.temperature_2m_min[ti],0)}°`);
+    const h=j.hourly,k0=nowIndex(h,c),rs=rainSummary(j,k0,Math.min(h.time.length,k0+48),today);
+    L.push(`🌧️ Próximas 48 h: ${rs.short}`);
+    const fr=[];for(let i=ti;i>=0&&i<Math.min(ti+4,d.time.length);i++){if(d.temperature_2m_min[i]<=0){const x=new Date(utc(d.time[i]));fr.push(`${i===ti?"hoy":DOW[x.getUTCDay()]+" "+x.getUTCDate()} (${fmt(d.temperature_2m_min[i],0)}°)`)}}
+    if(fr.length)L.push(`❄️ Riesgo de helada: ${fr.join(", ")}`);
+  }
+  if(S.cur){let t=`💧 Lluvia campaña ${campLabel(S.sy)} (desde 1 sep): *${fmt(S.total)} l/m²*`;
+    if(S.vsMean)t+=` (${S.vsMean.pct>0?"+":S.vsMean.pct<0?"−":""}${Math.abs(S.vsMean.pct)} % sobre la media)`;L.push(t);
+    if(S.lastEp)L.push(`Última lluvia: ${S.lastEp.dtxt}, ${fmt(S.lastEp.s)} l/m²`)}
+  L.push("",APP_URL);
+  S.share=L.join("\n");
+  $("wa").href="https://wa.me/?text="+encodeURIComponent(S.share);
+}
+function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2200)}
+$("copy").onclick=async()=>{if(!S.share)return;try{await navigator.clipboard.writeText(S.share);toast("Parte copiado")}catch(e){toast("No se pudo copiar")}};
+$("wa").addEventListener("click",e=>{if(!S.share){e.preventDefault();toast("Espera a que carguen los datos")}});
+
+/* ---------- controles ---------- */
+function setView(v){S.view=v;store("dm-view",v);$("vDate").setAttribute("aria-pressed",v==="date");$("vFull").setAttribute("aria-pressed",v==="full");if(S.curCum)drawChart()}
+$("vDate").onclick=()=>setView("date");$("vFull").onclick=()=>setView("full");
+setView(S.view==="full"?"full":"date");
+$("reload").onclick=loadAll;
+let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S.curCum)drawChart()},200)});
 loadAll();
 </script>
 </body>
