@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>El Tiempo en Doña Mencía</title>
+<meta name="theme-color" content="#56662a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tiempo Mencía">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: una columna estrecha tipo app móvil; la lluvia de campaña es la pieza principal */
+:root{
+  --bg:#f5f6f0; --surface:#ffffff; --line:#dfe3d3; --fg:#1e2419; --muted:#626b55;
+  --olive:#56662a; --rain:#2b6aa3; --rain-soft:#d6e5f3; --avg:#9aa486; --last:#c08a3e;
+  --frost:#2b6aa3; --hot:#b4472c;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121510; --surface:#1b1f17; --line:#2d3326; --fg:#e8ebe0; --muted:#a1a993;
+  --olive:#aabd6a; --rain:#74ade3; --rain-soft:#1f3347; --avg:#7c8569; --last:#d9a95e;
+  --frost:#74ade3; --hot:#e07a5f; color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);
+  padding:env(safe-area-inset-top,0) max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:18px;padding-top:18px}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.7rem;line-height:1.1}
+h2{font-size:1.15rem}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;min-width:0}
+.now{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.now .t{font-family:var(--display);font-size:3rem;line-height:1;font-weight:700}
+.now dl{display:grid;grid-template-columns:auto auto;gap:2px 14px;margin:0;font-size:.9rem}
+.now dt{color:var(--muted)} .now dd{margin:0}
+.big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.big .v{font-family:var(--display);font-size:3.4rem;line-height:1;font-weight:700;color:var(--rain)}
+.big .u{font-size:1.1rem;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.85rem}
+.chip.up{border-color:var(--olive);color:var(--olive)}
+.chip.down{border-color:var(--last);color:var(--last)}
+select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+select:focus-visible,button:focus-visible{outline:2px solid var(--rain);outline-offset:2px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:6px 12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+svg{display:block;width:100%;height:auto}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td.r,th.r{text-align:right}
+.bar{height:6px;border-radius:3px;background:var(--rain)}
+.barbg{background:var(--rain-soft);border-radius:3px;width:90px}
+.frost{color:var(--frost);font-weight:700;text-decoration:underline}
+@media (max-width:560px){.opt{display:none}th,td{padding:7px 4px}table{font-size:.85rem}}
+.hot{color:var(--hot);font-weight:600}
+.status{font-size:.85rem;color:var(--muted)}
+.err{color:var(--hot)}
+footer{font-size:.8rem;color:var(--muted);display:grid;gap:6px}
+footer a{color:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Doña Mencía · Córdoba · 590 m</div>
+      <h1>El tiempo y la lluvia de la campaña</h1>
+    </div>
+    <button id="reload" type="button">Actualizar</button>
+  </header>
+
+  <section class="card" aria-labelledby="h-now">
+    <div class="eyebrow" id="h-now">Ahora</div>
+    <div class="now" id="now"><span class="status">Cargando…</span></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-camp">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <h2 id="h-camp">Lluvia acumulada en la campaña</h2>
+      <label class="muted" style="font-size:.85rem">Empieza el
+        <select id="startSel">
+          <option value="10">1 de octubre (año hidrológico)</option>
+          <option value="9">1 de septiembre</option>
+        </select>
+      </label>
+    </div>
+    <div class="big"><span class="v num" id="total">–</span><span class="u">litros/m²</span></div>
+    <div class="muted" id="period" style="font-size:.88rem"></div>
+    <div class="chips" id="compare"></div>
+    <div class="legend">
+      <span><i style="background:var(--rain)"></i>Esta campaña</span>
+      <span><i style="background:var(--avg)"></i>Media de las 10 anteriores</span>
+      <span><i style="background:var(--last)"></i>Campaña pasada</span>
+    </div>
+    <div id="chart"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-fc">
+    <h2 id="h-fc">Próximos días</h2>
+    <div class="scroll"><table id="fc"><tbody><tr><td class="status">Cargando…</td></tr></tbody></table></div>
+    <div class="muted" style="font-size:.8rem">Mínimas subrayadas en azul: 0 °C o menos, riesgo de helada. Prob. = probabilidad de lluvia.</div>
+  </section>
+
+  <section class="card" aria-labelledby="h-month">
+    <h2 id="h-month">Lluvia por meses</h2>
+    <div class="scroll"><table id="months"><tbody><tr><td class="status">Cargando…</td></tr></tbody></table></div>
+  </section>
+
+  <footer>
+    <div id="stamp"></div>
+    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (modelos meteorológicos y reanálisis ERA5, CC BY 4.0). Son estimaciones para el punto 37,553 N · 4,356 O, no la lectura de un pluviómetro: en tormentas sueltas pueden fallar varios litros.</div>
+  </footer>
+</div>
+
+<script>
+const LAT=37.553, LON=-4.356, TZ="Europe/Madrid";
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const utc=s=>{const [y,m,d]=s.split("-").map(Number);return Date.UTC(y,m-1,d)};
+const daysBetween=(a,b)=>Math.round((utc(b)-utc(a))/864e5);
+const fmt=(v,dec=1)=>v==null||isNaN(v)?"–":v.toLocaleString("es-ES",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const MONTHS=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const DOW=["dom","lun","mar","mié","jue","vie","sáb"];
+const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"Niebla",48:"Niebla con escarcha",
+ 51:"Llovizna débil",53:"Llovizna",55:"Llovizna fuerte",56:"Llovizna helada",57:"Llovizna helada",
+ 61:"Lluvia débil",63:"Lluvia",65:"Lluvia fuerte",66:"Lluvia helada",67:"Lluvia helada",
+ 71:"Nieve débil",73:"Nieve",75:"Nieve fuerte",77:"Granizo fino",80:"Chubascos débiles",81:"Chubascos",82:"Chubascos fuertes",
+ 85:"Chubascos de nieve",86:"Chubascos de nieve",95:"Tormenta",96:"Tormenta con granizo",99:"Tormenta con granizo"};
+
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+const saved=store("dm-start"); if(saved) $("startSel").value=saved;
+
+async function getJSON(url){
+  const r=await fetch(url);
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||j.error) throw new Error(j.reason||("HTTP "+r.status));
+  return j;
+}
+const q=o=>Object.entries(o).map(([k,v])=>k+"="+encodeURIComponent(v)).join("&");
+
+function campaignStart(month,today){
+  let y=today.getFullYear();
+  let s=new Date(y,month-1,1);
+  if(today<s) s=new Date(y-1,month-1,1);
+  return s;
+}
+
+/* ---------- Previsión ---------- */
+async function loadForecast(){
+  const url="https://api.open-meteo.com/v1/forecast?"+q({latitude:LAT,longitude:LON,timezone:TZ,forecast_days:10,
+    current:"temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m",
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max"});
+  try{
+    const j=await getJSON(url); store("dm-fc",JSON.stringify(j)); renderNow(j); renderForecast(j); return j;
+  }catch(e){
+    const old=store("dm-fc");
+    if(old){try{const j=JSON.parse(old);renderNow(j);renderForecast(j);
+      $("now").insertAdjacentHTML("afterbegin",'<div class="err" style="width:100%">Sin conexión: datos guardados de la última vez.</div>');return j;}catch(_){}}
+    $("now").innerHTML='<span class="err">No se pudo cargar la previsión ('+e.message+'). Pulsa Actualizar.</span>';
+    $("fc").innerHTML='<tbody><tr><td class="err">Sin datos de previsión.</td></tr></tbody>';
+  }
+}
+function renderNow(j){
+  const c=j.current;
+  $("now").innerHTML=`<div class="t num">${fmt(c.temperature_2m,0)}°</div>
+   <div><div style="font-weight:600">${WMO[c.weather_code]||""}</div>
+   <dl class="num"><dt>Sensación</dt><dd>${fmt(c.apparent_temperature,0)} °C</dd>
+   <dt>Humedad</dt><dd>${fmt(c.relative_humidity_2m,0)} %</dd>
+   <dt>Viento</dt><dd>${fmt(c.wind_speed_10m,0)} km/h (rachas ${fmt(c.wind_gusts_10m,0)})</dd>
+   <dt>Lloviendo ahora</dt><dd>${fmt(c.precipitation)} L/m²</dd></dl></div>`;
+}
+function renderForecast(j){
+  const d=j.daily; const today=ymd(new Date());
+  let rows=d.time.map((t,i)=>{
+    const dt=new Date(utc(t)); const lbl=t===today?"Hoy":DOW[dt.getUTCDay()]+" "+dt.getUTCDate();
+    const mn=d.temperature_2m_min[i], mx=d.temperature_2m_max[i];
+    const p=d.precipitation_sum[i], pp=d.precipitation_probability_max[i];
+    return `<tr><td>${lbl}</td><td>${WMO[d.weather_code[i]]||""}</td>
+     <td class="r num ${mn<=0?"frost":""}">${fmt(mn,0)}°</td>
+     <td class="r num ${mx>=35?"hot":""}">${fmt(mx,0)}°</td>
+     <td class="r num">${p>0?fmt(p):"–"}</td><td class="r num">${pp==null?"–":pp+" %"}</td>
+     <td class="r num opt">${fmt(d.wind_gusts_10m_max[i],0)}</td></tr>`}).join("");
+  const sum=d.precipitation_sum.reduce((a,b)=>a+(b||0),0);
+  $("fc").innerHTML=`<thead><tr><th>Día</th><th>Cielo</th><th class="r">Mín</th><th class="r">Máx</th><th class="r">L/m²</th><th class="r">Prob.</th><th class="r opt">Rachas km/h</th></tr></thead><tbody>${rows}</tbody>
+   <tfoot><tr><td colspan="4" class="muted">Lluvia prevista en 10 días</td><td class="r num" style="font-weight:600">${fmt(sum)}</td><td></td><td class="opt"></td></tr></tfoot>`;
+}
+
+/* ---------- Campaña ---------- */
+async function loadCampaign(){
+  const month=Number($("startSel").value);
+  const now=new Date(); const start=campaignStart(month,now);
+  const startS=ymd(start); const yest=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1); const yestS=ymd(yest);
+  $("total").textContent="…"; $("compare").innerHTML=""; $("chart").innerHTML='<span class="status">Cargando…</span>';
+
+  // Esta campaña: modelos de alta resolución archivados (sin retraso)
+  let cur=null;
+  if(yestS>=startS){
+    const base={latitude:LAT,longitude:LON,timezone:TZ,start_date:startS,end_date:yestS,daily:"precipitation_sum"};
+    try{ cur=await getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q(base)); }
+    catch(e){ try{ cur=await getJSON("https://archive-api.open-meteo.com/v1/archive?"+q(base)); }catch(e2){ cur=null; } }
+  } else cur={daily:{time:[],precipitation_sum:[]}};
+
+  // 10 campañas anteriores: reanálisis ERA5
+  const hStart=new Date(start.getFullYear()-10,month-1,1); const hEnd=new Date(start.getFullYear(),month-1,0);
+  let hist=null;
+  try{ hist=await getJSON("https://archive-api.open-meteo.com/v1/archive?"+q({latitude:LAT,longitude:LON,timezone:TZ,start_date:ymd(hStart),end_date:ymd(hEnd),daily:"precipitation_sum"})); }
+  catch(e){ hist=null; }
+
+  const ck="dm-camp-"+month;
+  if(cur&&hist){store(ck,JSON.stringify({s:startS,cur,hist}));}
+  else{try{const o=JSON.parse(store(ck)||"null");if(o&&o.s===startS){cur=cur||o.cur;hist=hist||o.hist;}}catch(_){}}
+  if(!cur){ $("total").textContent="–"; $("chart").innerHTML='<span class="err">No se pudo cargar la lluvia de la campaña. Pulsa Actualizar.</span>'; return; }
+  renderCampaign(start,month,cur.daily,hist&&hist.daily);
+}
+
+function cumulative(daily,startS,len){
+  const out=new Array(len).fill(null); const byIdx=new Array(len).fill(0);
+  let last=-1;
+  daily.time.forEach((t,i)=>{const k=daysBetween(startS,t); if(k>=0&&k<len){byIdx[k]=daily.precipitation_sum[i]||0; if(daily.precipitation_sum[i]!=null) last=Math.max(last,k);}});
+  let s=0; for(let k=0;k<=last;k++){s+=byIdx[k]; out[k]=s;}
+  return {cum:out,daily:byIdx,last};
+}
+
+function renderCampaign(start,month,curD,histD){
+  const startS=ymd(start); const LEN=365;
+  const c=cumulative(curD,startS,LEN);
+  const total=c.last>=0?c.cum[c.last]:0;
+  $("total").textContent=fmt(total);
+  const lastDate=c.last>=0?new Date(utc(startS)+c.last*864e5):null;
+  $("period").textContent=`Desde el ${start.getDate()} de ${MONTHS[start.getMonth()]} de ${start.getFullYear()}`+(lastDate?` hasta el ${lastDate.getUTCDate()} de ${MONTHS[lastDate.getUTCMonth()]} (incluido)`:" · la campaña empieza hoy");
+
+  let mean=null, prev=null, prevYears=[];
+  if(histD){
+    for(let k=1;k<=10;k++){
+      const s=ymd(new Date(start.getFullYear()-k,month-1,1));
+      const r=cumulative(histD,s,LEN); if(r.last>=LEN-1) prevYears.push(r);
+    }
+    if(prevYears.length){
+      mean=new Array(LEN).fill(0).map((_,i)=>prevYears.reduce((a,r)=>a+r.cum[i],0)/prevYears.length);
+      prev=prevYears[0].cum; // la más reciente
+    }
+  }
+  // Comparativas
+  const chips=[];
+  if(mean&&c.last>=0){
+    const m=mean[c.last], diff=total-m, pct=m>0?Math.round(diff/m*100):0;
+    chips.push(`<span class="chip ${diff>=0?"up":"down"} num">${diff>=0?"+":""}${fmt(diff)} L/m² frente a la media a estas fechas (${fmt(m,0)})${m>0?` · ${pct>=0?"+":""}${pct} %`:""}</span>`);
+    chips.push(`<span class="chip num">Campaña pasada a estas fechas: ${fmt(prev[c.last],0)} L/m²</span>`);
+    chips.push(`<span class="chip num">Media de una campaña completa: ${fmt(mean[LEN-1],0)} L/m²</span>`);
+  } else if(!histD){ chips.push('<span class="chip">Sin datos de años anteriores para comparar</span>'); }
+  $("compare").innerHTML=chips.join("");
+  drawChart(startS,c,mean,prev);
+  renderMonths(start,c,prevYears);
+  $("stamp").textContent="Actualizado: "+new Date().toLocaleString("es-ES",{dateStyle:"medium",timeStyle:"short"});
+}
+
+function drawChart(startS,c,mean,prev){
+  const W=680,H=260,L=44,R=12,T=12,B=28;
+  const LEN=Math.min(365,Math.max(90,c.last+60)); // vista: campaña hasta hoy + 2 meses
+  const ymax=Math.max(10,...[c.last>=0?c.cum[c.last]:0, mean?mean[LEN-1]:0, prev?prev[LEN-1]:0]);
+  const step=ymax>400?100:ymax>150?50:ymax>60?20:10; const top=Math.ceil(ymax/step)*step;
+  const x=i=>L+(W-L-R)*i/(LEN-1), y=v=>T+(H-T-B)*(1-v/top);
+  const path=(arr,end)=>{let d="";for(let i=0;i<=end;i++){if(arr[i]==null)break;d+=(i?"L":"M")+x(i).toFixed(1)+" "+y(arr[i]).toFixed(1)}return d};
+  let g="";
+  for(let v=0;v<=top;v+=step) g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;
+  // meses
+  const s=new Date(utc(startS));
+  for(let m=0;m<12;m++){const d=Date.UTC(s.getUTCFullYear(),s.getUTCMonth()+m,1); const i=Math.round((d-utc(startS))/864e5); if(i>=LEN)break;
+    g+=`<line x1="${x(i)}" x2="${x(i)}" y1="${H-B}" y2="${H-B+4}" stroke="var(--muted)"/><text x="${x(i)+3}" y="${H-8}" font-size="11" fill="var(--muted)">${MONTHS[new Date(d).getUTCMonth()]}</text>`;}
+  let lines="";
+  if(prev) lines+=`<path d="${path(prev,LEN-1)}" fill="none" stroke="var(--last)" stroke-width="1.5" opacity=".75"/>`;
+  if(mean) lines+=`<path d="${path(mean,LEN-1)}" fill="none" stroke="var(--avg)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  if(c.last>=0){
+    const d=path(c.cum,c.last);
+    lines+=`<path d="${d}L${x(c.last)} ${y(0)}L${x(0)} ${y(0)}Z" fill="var(--rain-soft)" opacity=".7"/><path d="${d}" fill="none" stroke="var(--rain)" stroke-width="2.6"/>
+      <circle cx="${x(c.last)}" cy="${y(c.cum[c.last])}" r="4.5" fill="var(--rain)"/>`;
+  }
+  $("chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Lluvia acumulada en litros por metro cuadrado">${g}${lines}<text x="${L}" y="${T-1}" font-size="10" fill="var(--muted)">L/m²</text></svg>`;
+}
+
+function renderMonths(start,c,prevYears){
+  const startS=ymd(start); const rows=[]; let maxv=1;
+  for(let m=0;m<12;m++){
+    const a=new Date(start.getFullYear(),start.getMonth()+m,1), b=new Date(start.getFullYear(),start.getMonth()+m+1,1);
+    const i0=daysBetween(startS,ymd(a)), i1=Math.min(365,daysBetween(startS,ymd(b)));
+    const cur=c.last>=i0?c.daily.slice(i0,Math.min(i1,c.last+1)).reduce((x,y)=>x+y,0):null;
+    const avg=prevYears.length?prevYears.reduce((acc,r)=>acc+r.daily.slice(i0,i1).reduce((x,y)=>x+y,0),0)/prevYears.length:null;
+    maxv=Math.max(maxv,cur||0,avg||0);
+    rows.push({lbl:MONTHS[a.getMonth()]+" "+String(a.getFullYear()).slice(2),cur,avg,partial:c.last>=i0&&c.last<i1-1});
+  }
+  $("months").innerHTML=`<thead><tr><th>Mes</th><th class="r">Esta campaña</th><th></th><th class="r">Media</th></tr></thead><tbody>`+rows.map(r=>`<tr>
+    <td>${r.lbl}</td><td class="r num">${r.cur==null?"–":fmt(r.cur)}${r.partial?' <span class="muted">(en curso)</span>':""}</td>
+    <td><div class="barbg"><div class="bar" style="width:${r.cur?Math.round(r.cur/maxv*100):0}%"></div></div></td>
+    <td class="r num muted">${r.avg==null?"–":fmt(r.avg,0)}</td></tr>`).join("")+"</tbody>";
+}
+
+function loadAll(){ loadForecast(); loadCampaign(); }
+$("startSel").addEventListener("change",e=>{store("dm-start",e.target.value); loadCampaign();});
+$("reload").addEventListener("click",loadAll);
+loadAll();
+</script>
+</body>
+</html>
