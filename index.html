@@ -155,11 +155,6 @@ section.tab{display:grid;gap:1.4rem}
 .vs.down{color:var(--hot)} .vs.up{color:var(--olive)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
 .stat{background:var(--surface-2);border-radius:1.1rem;padding:.8rem .9rem;min-width:0}
-.stats.two{grid-template-columns:1fr 1fr}
-.stats.two .stat:first-child{grid-column:auto}
-.srcline{color:var(--muted);line-height:1.4}
-.srcline b{color:var(--fg)}
-.err{color:var(--hot);font-weight:600}
 .stat b{display:block;font-family:var(--display);font-weight:400;font-size:1.55rem;line-height:1.1}
 .stat span{font-size:.8rem;color:var(--muted);line-height:1.3;display:block;margin-top:.15rem}
 @media (max-width:30rem){.stats{grid-template-columns:1fr 1fr}.stats .stat:first-child{grid-column:1/-1}}
@@ -291,15 +286,10 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
           <div class="muted small" id="period">Desde el 1 de septiembre</div>
           <div><span class="bigv num" id="total">–</span> <span class="bigu">litros/m²</span></div>
           <p class="vs" id="vs"></p>
-          <p class="small srcline" id="srcline"></p>
         </div>
       </div>
       <div class="stats" id="recent"></div>
       <p class="small muted" id="coming"></p>
-    </div>
-    <div class="card" id="srcCard" aria-labelledby="h-src" hidden>
-      <h2 id="h-src">Estación de AEMET y modelo</h2>
-      <div id="srcBody" style="display:grid;gap:.7rem"></div>
     </div>
     <div class="card" aria-labelledby="h-month">
       <h2 id="h-month">Mes a mes</h2>
@@ -332,7 +322,7 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
 
   <footer>
     <div id="stamp"></div>
-    <div>Lluvia de la campaña: estación de AEMET de Doña Mencía (fuente: © AEMET) siempre que hay dato; el resto, modelos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La previsión es de Open-Meteo. Las campañas anteriores y «lo normal» salen del reanálisis ERA5, un modelo de menor resolución: úsalos para ver la tendencia.</div>
+    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). Son estimaciones de modelos meteorológicos para Doña Mencía, no la lectura de un pluviómetro: en tormentas sueltas pueden fallar varios litros. Las campañas anteriores salen del reanálisis ERA5, de menor resolución.</div>
   </footer>
 </main>
 
@@ -439,12 +429,9 @@ async function loadAll(){
       start_date:ymd(new Date(sy-10,START_MONTH-1,1)),end_date:ymd(new Date(sy,START_MONTH-1,0)),daily:"precipitation_sum"}))
     .then(j=>{store("dm-hist",JSON.stringify({s:startS,j}));return j}).catch(()=>null);
 
-  const pA=fetch("data/aemet.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.ok?r.json():null)
-    .then(j=>{if(j&&j.daily)store("dm-aemet",JSON.stringify(j));return j})
-    .catch(()=>{try{return JSON.parse(store("dm-aemet")||"null")}catch(e){return null}});
   pF.then(fc=>{S.fc=fc;renderToday()});
-  const [fc,cur,hist,aemet]=await Promise.all([pF,pC,pH,pA]);
-  S.fc=fc;S.cur=cur;S.hist=hist;S.aemet=aemet;S.loadedAt=Date.now();
+  const [fc,cur,hist]=await Promise.all([pF,pC,pH]);
+  S.fc=fc;S.cur=cur;S.hist=hist;S.loadedAt=Date.now();
   renderCampaign();
   if(S.fromCache.length){$("offline").hidden=false;$("offline").textContent="Sin conexión. Se ven los datos guardados la última vez.";}
   $("stamp").textContent="Actualizado: "+new Date().toLocaleString("es-ES",{dateStyle:"medium",timeStyle:"short"});
@@ -551,24 +538,12 @@ function renderCampaign(){
   const startS=S.startS, sy=S.sy;
   setTab(S.tab,true);
   if(!S.cur){$("total").textContent="–";$("vs").textContent="No se pudo cargar la lluvia. Pulsa actualizar.";$("vs").className="vs down";return}
-  const model=series(S.cur.daily,startS,366), td=todaySoFar();
-  const todayIdx=td.today?daysBetween(startS,td.today):model.last+1;
-  // HÍBRIDO: 1) valor diario oficial de AEMET  2) día completo de observaciones horarias de AEMET  3) modelo
-  const A=S.aemet&&S.aemet.daily?S.aemet:null, ds=k=>dayStr(startS,k);
-  const obsKeys=A&&A.obsHourly?Object.keys(A.obsHourly).sort():[];
-  const obsLast=obsKeys.length?new Date(obsKeys[obsKeys.length-1].replace(/Z?$/,"Z")):null;
-  const obsFresh=!!obsLast&&Date.now()-obsLast<5*3600e3;
-  const n=Math.max(model.last+1,td.today?todayIdx+1:0);
-  const curDaily=[],src=[],mdl=[];
-  for(let k=0;k<n;k++){const d=ds(k),m=k===todayIdx?td.mm:(model.daily[k]||0);mdl.push(m);
-    if(A&&A.daily[d]!=null){curDaily.push(A.daily[d]);src.push("A")}
-    else if(A&&A.obsDaily&&A.obsDaily[d]!=null&&(((A.obsCount||{})[d]||0)>=22||(k===todayIdx&&obsFresh))){curDaily.push(A.obsDaily[d]);src.push("O")}
-    else{curDaily.push(m);src.push("M")}}
-  const curCum=[];let acc=0;curDaily.forEach(v=>{acc+=v;curCum.push(acc)});
-  const total=n?curCum[n-1]:0, li=n-1;
-  if(obsFresh){const lim=Date.now()-24*3600e3;td.last24=obsKeys.filter(k=>new Date(k.replace(/Z?$/,"Z"))>lim).reduce((a,k)=>a+A.obsHourly[k],0);td.l24src=true}
-  Object.assign(S,{total,curCum,curDaily,li,src,modelDaily:mdl,obsFresh});
-  renderSources(A,todayIdx,td);
+  const cur=series(S.cur.daily,startS,366), td=todaySoFar();
+  const todayIdx=td.today?daysBetween(startS,td.today):cur.last+1;
+  const curCum=cur.cum.slice(), curDaily=cur.daily.slice(0,Math.max(cur.last+1,0));
+  if(td.today&&todayIdx===curCum.length){curDaily[todayIdx]=td.mm;curCum.push((curCum[curCum.length-1]||0)+td.mm)}
+  const total=curCum.length?curCum[curCum.length-1]:0, li=curCum.length-1;
+  Object.assign(S,{total,curCum,curDaily,li});
 
   const prev=[];
   if(S.hist){for(let k=1;k<=10;k++){const y=sy-k,s=ymd(new Date(y,START_MONTH-1,1)),len=daysBetween(s,ymd(new Date(y+1,START_MONTH-1,1)));
@@ -588,26 +563,6 @@ function renderCampaign(){
     $("vs").textContent=Math.abs(diff)<1?"Vamos igual que un año normal a estas fechas.":`${fmt(Math.abs(diff),0)} litros ${diff>=0?"más":"menos"} de lo normal a estas fechas (${pct>0?"+":"−"}${Math.abs(pct)} %).`;
   } else {$("vs").className="vs";$("vs").textContent=S.hist?"":"Sin datos de otros años para comparar."}
   drawGauge();renderRecent(td);renderComing();renderMonths();renderPicker();renderCmpTable();drawChart();
-}
-function dayStr(startS,k){const d=new Date(utc(startS)+k*864e5);return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())}
-function shortDate(s){const d=new Date(utc(s));return d.getUTCDate()+" "+MONTHS[d.getUTCMonth()]}
-function renderSources(A,todayIdx,td){
-  const src=S.src,startS=S.startS;let nA=0,nO=0,nM=0,sumA=0,sumM=0,lastA=-1;
-  src.forEach((x,k)=>{if(x==="A"){nA++;sumA+=S.curDaily[k];sumM+=S.modelDaily[k];lastA=k}else if(x==="O")nO++;else nM++});
-  S.srcInfo={nA,nO,nM};
-  if(!A||!nA){$("srcline").textContent="Lluvia estimada con modelos meteorológicos.";$("srcCard").hidden=true;return}
-  const tail=[];if(nO)tail.push("observaciones horarias de la estación");if(nM)tail.push("el modelo");
-  $("srcline").innerHTML=`<b>Medido en la estación de AEMET de Doña Mencía</b> hasta el ${shortDate(dayStr(startS,lastA))}.`+(tail.length?` Los días siguientes, ${tail.join(" y ")}, hasta que AEMET publique el dato oficial (tarda unos días).`:"");
-  const diff=sumM-sumA,pct=sumA>0?Math.round(diff/sumA*100):null;
-  const age=A.updated?(Date.now()-new Date(A.updated))/864e5:0;
-  $("srcCard").hidden=false;
-  $("srcBody").innerHTML=`<p class="muted small">Mismo periodo: del ${shortDate(startS)} al ${shortDate(dayStr(startS,lastA))}.</p>
-    <div class="stats two"><div class="stat"><b class="num">${fmt(sumA)} L</b><span>Estación AEMET Doña Mencía (medido)</span></div>
-    <div class="stat"><b class="num">${fmt(sumM)} L</b><span>Modelo meteorológico (estimado)</span></div></div>
-    <p class="vs ${Math.abs(diff)<1?"":"down"}">${Math.abs(diff)<1?"El modelo y la estación coinciden en esta campaña.":`El modelo da ${fmt(Math.abs(diff),0)} litros ${diff>0?"más":"menos"} que la estación${pct!=null?` (${pct>0?"+":"−"}${Math.abs(pct)} %)`:""}.`}</p>
-    <p class="muted small">Por eso la cifra de la campaña usa siempre la estación cuando hay dato. El modelo solo rellena los últimos días.</p>`+
-    (age>1.5||A.status==="key_error"?`<p class="err small">Los datos de la estación no se actualizan desde el ${new Date(A.updated).toLocaleDateString("es-ES")}.</p>`:"");
-  if(S.obsFresh&&A.obsDaily&&A.obsDaily[td.today]!=null)$("facts").insertAdjacentHTML("afterbegin",`<span class="fact num">Hoy en la estación: ${fmt(A.obsDaily[td.today])} L</span>`);
 }
 function drawGauge(){
   const total=S.total,m=S.vsMean?S.vsMean.m:null,full=S.mean?S.mean[364]:null;
@@ -633,7 +588,7 @@ function renderRecent(td){
   let w=0;for(let k=Math.max(0,n-7);k<n;k++)w+=d[k]||0;
   $("recent").innerHTML=`<div class="stat"><b class="num">${a1}</b><span>${a2}</span></div>
     <div class="stat"><b class="num">${fmt(w)} L/m²</b><span>Últimos 7 días</span></div>
-    <div class="stat"><b class="num">${fmt(td.last24)} L/m²</b><span>Últimas 24 horas${td.l24src?" (estación)":""}</span></div>`;
+    <div class="stat"><b class="num">${fmt(td.last24)} L/m²</b><span>Últimas 24 horas</span></div>`;
 }
 function renderComing(){
   $("coming").textContent=S.next10==null?"":S.next10>=0.5?`La previsión da unos ${fmt(S.next10,0)} L/m² más en los próximos ${S.nDays} días.`:`La previsión no da lluvia en los próximos ${S.nDays} días.`;
@@ -752,7 +707,7 @@ function buildShare(){
     if(ti>=0)L.push(`Hoy: máx ${fmt(d.temperature_2m_max[ti],0)}° / mín ${fmt(d.temperature_2m_min[ti],0)}°`);
     L.push(`🌧️ Próximas 48 h: ${rainSummary(j).short}`);
     if(S.frost&&S.frost.length)L.push(`❄️ Riesgo de helada: ${S.frost.join(", ")}`)}
-  if(S.cur){let t=`💧 Lluvia campaña ${campLabel(S.sy)} (desde 1 sep): *${fmt(S.total)} l/m²*${S.srcInfo&&S.srcInfo.nA?" (estación AEMET Doña Mencía)":""}`;
+  if(S.cur){let t=`💧 Lluvia campaña ${campLabel(S.sy)} (desde 1 sep): *${fmt(S.total)} l/m²*`;
     if(S.vsMean&&S.vsMean.pct!==0)t+=` (${Math.abs(S.vsMean.pct)} % por ${S.vsMean.pct>0?"encima":"debajo"} de lo normal)`;L.push(t);
     if(S.lastEp)L.push(`Última lluvia: ${S.lastEp.dtxt}, ${fmt(S.lastEp.s)} l/m²`)}
   L.push("",APP_URL);
