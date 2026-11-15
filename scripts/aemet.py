@@ -126,14 +126,16 @@ def main():
             out["obsMessage"] = str(e)
         cutoff = (datetime.now(timezone.utc) - timedelta(days=21)).strftime("%Y-%m-%dT%H")
         out["obsHourly"] = {k: v for k, v in sorted(out["obsHourly"].items()) if k >= cutoff}
-        by_day = {}
+        by_day, count = {}, {}
         for k, v in out["obsHourly"].items():
             t = datetime.fromisoformat(k.replace("Z", "+00:00"))
             if t.tzinfo is None:
                 t = t.replace(tzinfo=timezone.utc)
             dl = (t - timedelta(seconds=1)).astimezone(TZ).date().isoformat()   # la hora acumula lo caído antes de 'fint'
             by_day[dl] = round(by_day.get(dl, 0) + v, 1)
+            count[dl] = count.get(dl, 0) + 1
         out["obsDaily"] = by_day
+        out["obsCount"] = count     # horas observadas cada día (24 = día completo)
         out["daily"] = dict(sorted(out["daily"].items()))
         out["lastDaily"] = max(out["daily"]) if out["daily"] else None
     except PermissionError as e:
