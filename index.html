@@ -155,6 +155,7 @@ section.tab{display:grid;gap:1.4rem}
 .vs.down{color:var(--hot)} .vs.up{color:var(--olive)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
 .stat{background:var(--surface-2);border-radius:1.1rem;padding:.8rem .9rem;min-width:0}
+.srcline{color:var(--muted);line-height:1.4}
 .stat b{display:block;font-family:var(--display);font-weight:400;font-size:1.55rem;line-height:1.1}
 .stat span{font-size:.8rem;color:var(--muted);line-height:1.3;display:block;margin-top:.15rem}
 @media (max-width:30rem){.stats{grid-template-columns:1fr 1fr}.stats .stat:first-child{grid-column:1/-1}}
@@ -286,6 +287,7 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
           <div class="muted small" id="period">Desde el 1 de septiembre</div>
           <div><span class="bigv num" id="total">–</span> <span class="bigu">litros/m²</span></div>
           <p class="vs" id="vs"></p>
+          <p class="small srcline" id="srcline"></p>
         </div>
       </div>
       <div class="stats" id="recent"></div>
@@ -322,7 +324,7 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
 
   <footer>
     <div id="stamp"></div>
-    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). Son estimaciones de modelos meteorológicos para Doña Mencía, no la lectura de un pluviómetro: en tormentas sueltas pueden fallar varios litros. Las campañas anteriores salen del reanálisis ERA5, de menor resolución.</div>
+    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La lluvia de la campaña es una estimación que combina cinco modelos meteorológicos (alemán, europeo, francés, estadounidense y británico) para Doña Mencía; no es la lectura de un pluviómetro y en tormentas sueltas puede desviarse. Las campañas anteriores y «lo normal» salen del reanálisis ERA5: sirven para ver la tendencia.</div>
   </footer>
 </main>
 
@@ -353,6 +355,7 @@ const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"N
  61:"Lluvia débil",63:"Lluvia",65:"Lluvia fuerte",66:"Lluvia helada",67:"Lluvia helada",
  71:"Nieve débil",73:"Nieve",75:"Nieve fuerte",77:"Granizo fino",80:"Chubascos débiles",81:"Chubascos",82:"Chubascos fuertes",
  85:"Chubascos de nieve",86:"Chubascos de nieve",95:"Tormenta",96:"Tormenta con granizo",99:"Tormenta con granizo"};
+const ENS_MODELS=["icon_seamless","ecmwf_ifs025","meteofrance_seamless","gfs_seamless","ukmo_seamless"];
 const YEAR_COLORS=["#c08a3e","#8e5bb5","#3f9c8a","#c4566b","#b5a33a","#d07a2c","#d46aa8","#5f8f5a","#7a6a58","#4f7fa8"];
 const TITLES={lluvia:"Adolfo, así va la lluvia",comparar:"Adolfo, ¿cómo íbamos otros años?"};
 
@@ -415,9 +418,23 @@ async function loadAll(){
     .catch(()=>{try{const o=store("dm-fc");if(o){S.fromCache.push("previsión");return JSON.parse(o)}}catch(e){}return null});
 
   const base={latitude:LAT,longitude:LON,timezone:TZ,start_date:startS,end_date:yestS,daily:"precipitation_sum"};
-  const pC=(yestS<startS?Promise.resolve({daily:{time:[],precipitation_sum:[]}}):
-    getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q(base))
-      .catch(()=>getJSON("https://archive-api.open-meteo.com/v1/archive?"+q(base))))
+  // Lluvia de la campaña: mediana diaria de 5 modelos distintos (validada frente a estaciones: falla menos que uno solo).
+  // Cada modelo se pide por separado; lo ya pasado no cambia, así que se guarda en el móvil una vez al día.
+  const single=()=>getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q(base))
+      .catch(()=>getJSON("https://archive-api.open-meteo.com/v1/archive?"+q(base)));
+  const ensemble=async()=>{
+    let c=null;try{c=JSON.parse(store("dm-ens")||"null")}catch(e){}
+    if(c&&c.s===startS&&c.e===yestS&&c.j&&c.j.ens&&c.j.ens.n===ENS_MODELS.length)return c.j;
+    const rs=await Promise.allSettled(ENS_MODELS.map(m=>getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q({...base,models:m}))));
+    const ok=rs.filter(r=>r.status==="fulfilled"&&r.value.daily&&r.value.daily.time&&r.value.daily.precipitation_sum.some(v=>v!=null)).map(r=>r.value.daily);
+    if(ok.length<3)throw new Error("pocos modelos");
+    const time=ok[0].time,sum=[],tot=ok.map(()=>0);
+    time.forEach((t,i)=>{const v=[];ok.forEach((d,k)=>{const j=d.time[i]===t?i:d.time.indexOf(t),x=j>=0?d.precipitation_sum[j]:null;if(x!=null){v.push(x);tot[k]+=x}});
+      v.sort((a,b)=>a-b);const n=v.length;sum.push(n?(n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2):null)});
+    const j={daily:{time,precipitation_sum:sum},ens:{n:ok.length,totals:tot.sort((a,b)=>a-b)}};
+    store("dm-ens",JSON.stringify({s:startS,e:yestS,j}));return j;
+  };
+  const pC=(yestS<startS?Promise.resolve({daily:{time:[],precipitation_sum:[]}}):ensemble().catch(single))
     .then(j=>{store("dm-cur",JSON.stringify({s:startS,j}));return j})
     .catch(()=>{try{const o=JSON.parse(store("dm-cur")||"null");if(o&&o.s===startS){S.fromCache.push("lluvia");return o.j}}catch(e){}return null});
 
@@ -557,6 +574,10 @@ function renderCampaign(){
 
   $("total").textContent=fmt(total);
   $("period").textContent=`Campaña ${campLabel(sy)} · desde el 1 de septiembre`;
+  const en=S.cur.ens;
+  if(en&&en.n>=3){const t=en.totals,lo=en.n>=4?t[1]:t[0],hi=en.n>=4?t[en.n-2]:t[en.n-1];
+    $("srcline").textContent=`Estimación combinando ${en.n} modelos meteorológicos.`+(hi-lo>=2?` Según el modelo, entre ${fmt(lo,0)} y ${fmt(hi,0)} L.`:"");
+  } else $("srcline").textContent="Estimación con un modelo meteorológico.";
   S.vsMean=null;
   if(mean&&li>=0){const m=mean[Math.min(li,364)],diff=total-m,pct=m>0?Math.round(diff/m*100):0;S.vsMean={diff,pct,m};
     $("vs").className="vs "+(diff>=0?"up":"down");
@@ -576,10 +597,11 @@ function drawGauge(){
   $("gauge").innerHTML=`<svg class="gauge" viewBox="0 0 ${W} ${H}" role="img" aria-label="Pluviómetro de la campaña: ${fmt(total)} litros por metro cuadrado">${t}</svg>`;
 }
 function renderRecent(td){
+  const RAIN_DAY=S.cur&&S.cur.ens?2:0.5;
   const d=S.curDaily,startS=S.startS,n=d.length;
-  let e=-1;for(let k=n-1;k>=0;k--){if((d[k]||0)>=0.5){e=k;break}}
+  let e=-1;for(let k=n-1;k>=0;k--){if((d[k]||0)>=RAIN_DAY){e=k;break}}
   let a1="Aún no ha llovido",a2="en esta campaña";S.lastEp=null;
-  if(e>=0){let a=e;while(a>0&&(d[a-1]||0)>=0.2)a--;let b=e;while(b+1<n&&(d[b+1]||0)>=0.2)b++;
+  if(e>=0){let a=e;while(a>0&&(d[a-1]||0)>=RAIN_DAY/2)a--;let b=e;while(b+1<n&&(d[b+1]||0)>=RAIN_DAY/2)b++;
     let s=0;for(let k=a;k<=b;k++)s+=d[k]||0;
     const da=new Date(utc(startS)+a*864e5),db=new Date(utc(startS)+b*864e5);
     const dtxt=a===b?`${da.getUTCDate()} de ${MONTHS[da.getUTCMonth()]}`:`del ${da.getUTCDate()}${da.getUTCMonth()!==db.getUTCMonth()?" de "+MONTHS[da.getUTCMonth()]:""} al ${db.getUTCDate()} de ${MONTHS[db.getUTCMonth()]}`;
