@@ -156,6 +156,14 @@ section.tab{display:grid;gap:1.4rem}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
 .stat{background:var(--surface-2);border-radius:1.1rem;padding:.8rem .9rem;min-width:0}
 .srcline{color:var(--muted);line-height:1.4}
+.curio{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+.sunmoon{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
+.sunmoon .stat svg{width:2rem;height:2rem;display:block;margin-bottom:.3rem}
+@media (max-width:30rem){.sunmoon{grid-template-columns:1fr 1fr}.sunmoon .stat:last-child{grid-column:1/-1}}
+.alert.hot{background:var(--hot-soft);color:var(--hot)}
+.alert.dust{background:#f3e6cf;color:#8a5a14}
+@media (prefers-color-scheme:dark){.alert.dust{background:#3a2e1a;color:#e8b86a}}
+.btn.radar{background:var(--surface);color:var(--rain)}
 .stat b{display:block;font-family:var(--display);font-weight:400;font-size:1.55rem;line-height:1.1}
 .stat span{font-size:.8rem;color:var(--muted);line-height:1.3;display:block;margin-top:.15rem}
 @media (max-width:30rem){.stats{grid-template-columns:1fr 1fr}.stats .stat:first-child{grid-column:1/-1}}
@@ -259,17 +267,25 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
   <!-- HOY -->
   <section class="tab" id="tab-hoy">
     <div id="alerts" style="display:grid;gap:.6rem"></div>
+    <div id="dustAlert"></div>
     <div class="block" aria-labelledby="h-48">
       <h2 id="h-48">Próximas 48 horas</h2>
       <p id="rainline" class="rainline">Cargando…</p>
       <div class="hours" id="hours" tabindex="0" aria-label="Previsión hora a hora. Desliza para ver más horas."></div>
       <p class="muted small">Desliza para ver más horas. En azul: probabilidad de lluvia y litros. En gris: rachas de viento en km/h.</p>
     </div>
+    <a class="btn radar" href="https://www.aemet.es/es/eltiempo/observacion/radar" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/></svg>
+      Ver el radar de lluvia en directo</a>
     <div class="sharebox">
       <a class="btn wa" id="wa" href="#" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-13.500 7.800L3 21l1.300-4.300A9 9 0 1 1 21 12z"/></svg>
         Enviar el parte por WhatsApp</a>
       <button class="btn" id="copy" type="button">Copiar</button>
+    </div>
+    <div class="card" aria-labelledby="h-sun">
+      <h2 id="h-sun">Sol y luna</h2>
+      <div class="sunmoon" id="sunmoon"></div>
     </div>
     <div class="card" aria-labelledby="h-fc">
       <h2 id="h-fc">Próximos 10 días</h2>
@@ -292,6 +308,10 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
       </div>
       <div class="stats" id="recent"></div>
       <p class="small muted" id="coming"></p>
+    </div>
+    <div class="card" aria-labelledby="h-cur">
+      <h2 id="h-cur">Curiosidades de la campaña</h2>
+      <div class="curio" id="curio"></div>
     </div>
     <div class="card" aria-labelledby="h-month">
       <h2 id="h-month">Mes a mes</h2>
@@ -324,7 +344,7 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
 
   <footer>
     <div id="stamp"></div>
-    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La lluvia de la campaña es una estimación que combina cinco modelos meteorológicos (alemán, europeo, francés, estadounidense y británico) para Doña Mencía; no es la lectura de un pluviómetro y en tormentas sueltas puede desviarse. Las campañas anteriores y «lo normal» salen del reanálisis ERA5: sirven para ver la tendencia.</div>
+    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La lluvia de la campaña es una estimación que combina cinco modelos meteorológicos (alemán, europeo, francés, estadounidense y británico) para Doña Mencía; no es la lectura de un pluviómetro y en tormentas sueltas puede desviarse. Las campañas anteriores y «lo normal» salen del reanálisis ERA5, rebajado un 11 % porque aquí tiende a dar de más: sirven para ver la tendencia. Calima: polvo en suspensión según el servicio europeo Copernicus (CAMS), vía Open-Meteo. Radar: AEMET.</div>
   </footer>
 </main>
 
@@ -355,6 +375,8 @@ const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"N
  61:"Lluvia débil",63:"Lluvia",65:"Lluvia fuerte",66:"Lluvia helada",67:"Lluvia helada",
  71:"Nieve débil",73:"Nieve",75:"Nieve fuerte",77:"Granizo fino",80:"Chubascos débiles",81:"Chubascos",82:"Chubascos fuertes",
  85:"Chubascos de nieve",86:"Chubascos de nieve",95:"Tormenta",96:"Tormenta con granizo",99:"Tormenta con granizo"};
+const DUST_LIMIT=100; // µg/m³ de polvo en superficie; por encima suele notarse calima
+const ERA5_FACTOR=0.89; // validado con 6 estaciones y 15 años de la estación del pueblo
 const ENS_MODELS=["icon_seamless","ecmwf_ifs025","meteofrance_seamless","gfs_seamless","ukmo_seamless"];
 const YEAR_COLORS=["#c08a3e","#8e5bb5","#3f9c8a","#c4566b","#b5a33a","#d07a2c","#d46aa8","#5f8f5a","#7a6a58","#4f7fa8"];
 const TITLES={lluvia:"Adolfo, así va la lluvia",comparar:"Adolfo, ¿cómo íbamos otros años?"};
@@ -413,7 +435,7 @@ async function loadAll(){
   const pF=getJSON("https://api.open-meteo.com/v1/forecast?"+q({latitude:LAT,longitude:LON,timezone:TZ,past_days:1,forecast_days:10,
     current:"temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day",
     hourly:"temperature_2m,precipitation_probability,precipitation,wind_gusts_10m,weather_code,is_day",
-    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max"}))
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,sunrise,sunset"}))
     .then(j=>{store("dm-fc",JSON.stringify(j));return j})
     .catch(()=>{try{const o=store("dm-fc");if(o){S.fromCache.push("previsión");return JSON.parse(o)}}catch(e){}return null});
 
@@ -423,16 +445,16 @@ async function loadAll(){
   const single=()=>getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q(base))
       .catch(()=>getJSON("https://archive-api.open-meteo.com/v1/archive?"+q(base)));
   const ensemble=async()=>{
-    let c=null;try{c=JSON.parse(store("dm-ens")||"null")}catch(e){}
+    let c=null;try{c=JSON.parse(store("dm-ens2")||"null")}catch(e){}
     if(c&&c.s===startS&&c.e===yestS&&c.j&&c.j.ens&&c.j.ens.n===ENS_MODELS.length)return c.j;
     const rs=await Promise.allSettled(ENS_MODELS.map(m=>getJSON("https://historical-forecast-api.open-meteo.com/v1/forecast?"+q({...base,models:m}))));
     const ok=rs.filter(r=>r.status==="fulfilled"&&r.value.daily&&r.value.daily.time&&r.value.daily.precipitation_sum.some(v=>v!=null)).map(r=>r.value.daily);
     if(ok.length<3)throw new Error("pocos modelos");
-    const time=ok[0].time,sum=[],tot=ok.map(()=>0);
+    const time=ok[0].time,sum=[],lo=[],hi=[],tot=ok.map(()=>0);
     time.forEach((t,i)=>{const v=[];ok.forEach((d,k)=>{const j=d.time[i]===t?i:d.time.indexOf(t),x=j>=0?d.precipitation_sum[j]:null;if(x!=null){v.push(x);tot[k]+=x}});
-      v.sort((a,b)=>a-b);const n=v.length;sum.push(n?(n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2):null)});
-    const j={daily:{time,precipitation_sum:sum},ens:{n:ok.length,totals:tot.sort((a,b)=>a-b)}};
-    store("dm-ens",JSON.stringify({s:startS,e:yestS,j}));return j;
+      v.sort((a,b)=>a-b);const n=v.length;sum.push(n?(n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2):null);lo.push(n?v[n>=4?1:0]:null);hi.push(n?v[n>=4?n-2:n-1]:null)});
+    const j={daily:{time,precipitation_sum:sum},ens:{n:ok.length,lo,hi}};
+    store("dm-ens2",JSON.stringify({s:startS,e:yestS,j}));return j;
   };
   const pC=(yestS<startS?Promise.resolve({daily:{time:[],precipitation_sum:[]}}):ensemble().catch(single))
     .then(j=>{store("dm-cur",JSON.stringify({s:startS,j}));return j})
@@ -447,6 +469,8 @@ async function loadAll(){
     .then(j=>{store("dm-hist",JSON.stringify({s:startS,j}));return j}).catch(()=>null);
 
   pF.then(fc=>{S.fc=fc;renderToday()});
+  getJSON("https://air-quality-api.open-meteo.com/v1/air-quality?"+q({latitude:LAT,longitude:LON,timezone:TZ,hourly:"dust",forecast_days:3}))
+    .then(renderDust).catch(()=>{$("dustAlert").innerHTML=""});
   const [fc,cur,hist]=await Promise.all([pF,pC,pH]);
   S.fc=fc;S.cur=cur;S.hist=hist;S.loadedAt=Date.now();
   renderCampaign();
@@ -511,7 +535,10 @@ function renderToday(){
     if(d.wind_gusts_10m_max[i]>=60)wi.push(`${nm} (${fmt(d.wind_gusts_10m_max[i],0)} km/h)`)}
   if(fr.length)al.push(`<div class="alert frost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v20M3.300 7l17.400 10M20.700 7 3.300 17M9 4l3 3 3-3M9 20l3-3 3 3"/></svg><span>Riesgo de helada: ${fr.join(", ")}</span></div>`);
   if(wi.length)al.push(`<div class="alert wind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3M3 12h7"/></svg><span>Viento fuerte: ${wi.join(", ")}</span></div>`);
-  $("alerts").innerHTML=al.join("");S.frost=fr;
+  const hot=[];for(let i=ti;i>=0&&i<Math.min(ti+4,d.time.length);i++){const x=new Date(utc(d.time[i]));const nm=i===ti?"hoy":i===ti+1?"mañana":"el "+DOWL[x.getUTCDay()];if(d.temperature_2m_max[i]>=38)hot.push(`${nm} (${fmt(d.temperature_2m_max[i],0)}°)`)}
+  if(hot.length)al.push(`<div class="alert hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14 14.800V4a2 2 0 0 0-4 0v10.800a4 4 0 1 0 4 0z"/></svg><span>Calor fuerte: ${hot.join(", ")}</span></div>`);
+  $("alerts").innerHTML=al.join("");S.frost=fr;S.hot=hot;
+  renderSunMoon(d,ti);
 
   // horas
   const h=j.hourly,k0=nowIndex(h,c),end=Math.min(h.time.length,k0+48);let cards="";
@@ -564,7 +591,7 @@ function renderCampaign(){
 
   const prev=[];
   if(S.hist){for(let k=1;k<=10;k++){const y=sy-k,s=ymd(new Date(y,START_MONTH-1,1)),len=daysBetween(s,ymd(new Date(y+1,START_MONTH-1,1)));
-    const r=series(S.hist.daily,s,len);if(r.last>=len-5)prev.push({y,label:campLabel(y),cum:r.cum,daily:r.daily,total:r.cum[r.cum.length-1],color:YEAR_COLORS[(k-1)%10]})}}
+    const r=series(S.hist.daily,s,len);if(r.last>=len-5){const F=ERA5_FACTOR,cum=r.cum.map(v=>v*F);prev.push({y,label:campLabel(y),cum,daily:r.daily.map(v=>v*F),total:cum[cum.length-1],color:YEAR_COLORS[(k-1)%10]})}}}
   S.prev=prev;
   let mean=null;
   if(prev.length){mean=[];for(let i=0;i<365;i++)mean.push(prev.reduce((a,r)=>a+r.cum[Math.min(i,r.cum.length-1)],0)/prev.length)}
@@ -575,15 +602,16 @@ function renderCampaign(){
   $("total").textContent=fmt(total);
   $("period").textContent=`Campaña ${campLabel(sy)} · desde el 1 de septiembre`;
   const en=S.cur.ens;
-  if(en&&en.n>=3){const t=en.totals,lo=en.n>=4?t[1]:t[0],hi=en.n>=4?t[en.n-2]:t[en.n-1];
-    $("srcline").textContent=`Estimación combinando ${en.n} modelos meteorológicos.`+(hi-lo>=2?` Según el modelo, entre ${fmt(lo,0)} y ${fmt(hi,0)} L.`:"");
+  if(en&&en.n>=3&&en.lo){const add=a=>a.reduce((x,v)=>x+(v||0),0)+(total-(curCum[cur.last]||0));
+    const lo=Math.min(add(en.lo),total),hi=Math.max(add(en.hi),total);
+    $("srcline").textContent=`Estimación combinando ${en.n} modelos meteorológicos.`+(hi-lo>=2?` Según los modelos, entre ${fmt(lo,0)} y ${fmt(hi,0)} L.`:"");
   } else $("srcline").textContent="Estimación con un modelo meteorológico.";
   S.vsMean=null;
   if(mean&&li>=0){const m=mean[Math.min(li,364)],diff=total-m,pct=m>0?Math.round(diff/m*100):0;S.vsMean={diff,pct,m};
     $("vs").className="vs "+(diff>=0?"up":"down");
     $("vs").textContent=Math.abs(diff)<1?"Vamos igual que un año normal a estas fechas.":`${fmt(Math.abs(diff),0)} litros ${diff>=0?"más":"menos"} de lo normal a estas fechas (${pct>0?"+":"−"}${Math.abs(pct)} %).`;
   } else {$("vs").className="vs";$("vs").textContent=S.hist?"":"Sin datos de otros años para comparar."}
-  drawGauge();renderRecent(td);renderComing();renderMonths();renderPicker();renderCmpTable();drawChart();
+  drawGauge();renderRecent(td);renderComing();renderCurio();renderMonths();renderPicker();renderCmpTable();drawChart();
 }
 function drawGauge(){
   const total=S.total,m=S.vsMean?S.vsMean.m:null,full=S.mean?S.mean[364]:null;
@@ -611,6 +639,49 @@ function renderRecent(td){
   $("recent").innerHTML=`<div class="stat"><b class="num">${a1}</b><span>${a2}</span></div>
     <div class="stat"><b class="num">${fmt(w)} L/m²</b><span>Últimos 7 días</span></div>
     <div class="stat"><b class="num">${fmt(td.last24)} L/m²</b><span>Últimas 24 horas</span></div>`;
+}
+function renderCurio(){
+  const d=S.curDaily,n=d.length,startS=S.startS,RD=S.cur&&S.cur.ens?2:0.5;if(!n){$("curio").innerHTML="";return}
+  let mx=0,mi=-1,wet=0,last=-1;d.forEach((v,k)=>{if(v>mx){mx=v;mi=k}if(v>=RD){wet++;last=k}});
+  const dd=k=>{const x=new Date(utc(startS)+k*864e5);return `${x.getUTCDate()} de ${MONTHSL[x.getUTCMonth()]}`};
+  const items=[];
+  items.push([mi>=0&&mx>=RD?fmt(mx)+" L":"—",mi>=0&&mx>=RD?`El día que más llovió: ${dd(mi)}`:"Aún no ha llovido con ganas"]);
+  const dry=last<0?n:n-1-last;
+  items.push([last===n-1?"Hoy":dry+(dry===1?" día":" días"),last===n-1?"está lloviendo o ha llovido hoy":last<0?"sin llover en toda la campaña":"sin llover (desde el "+dd(last)+")"]);
+  items.push([String(wet),wet===1?"día de lluvia en la campaña":"días de lluvia en la campaña"]);
+  if(S.prev&&S.prev.length){const li=S.li,all=[S.total,...S.prev.map(p=>p.cum[Math.min(li,p.cum.length-1)])].sort((a,b)=>b-a),pos=all.indexOf(S.total)+1;
+    items.push([`${pos}ª`,`más lluviosa de las últimas ${all.length} campañas a estas fechas`+(pos===1?" (¡la que más!)":pos===all.length?" (la que menos)":"")])}
+  $("curio").innerHTML=items.map(([b,t])=>`<div class="stat"><b class="num">${b}</b><span>${t}</span></div>`).join("");
+}
+function moonPhase(date){
+  const syn=29.530588853,ref=Date.UTC(2000,0,6,18,14),age=(((date-ref)/864e5)%syn+syn)%syn,f=age/syn;
+  const ill=Math.round((1-Math.cos(2*Math.PI*f))/2*100);
+  const name=age<1.2||age>syn-1.2?"Luna nueva":Math.abs(age-syn/2)<1.2?"Luna llena":Math.abs(age-syn/4)<1.2?"Cuarto creciente":Math.abs(age-3*syn/4)<1.2?"Cuarto menguante":f<.5?"Creciente":"Menguante";
+  const toFull=((syn/2-age)%syn+syn)%syn,toNew=syn-age;
+  return {f,ill,name,nextFull:new Date(date.getTime()+toFull*864e5),nextNew:new Date(date.getTime()+toNew*864e5)};
+}
+function moonSvg(f){
+  const k=Math.cos(2*Math.PI*f),rx=Math.abs(k)*10,waxing=f<.5;
+  const outer=waxing?"M12 2A10 10 0 0 1 12 22":"M12 2A10 10 0 0 0 12 22";
+  const sweep=waxing?(k>0?0:1):(k>0?1:0);
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill:var(--surface-2);stroke:var(--line)" stroke-width="1"/><path d="${outer}A${rx.toFixed(2)} 10 0 0 ${sweep} 12 2Z" fill="url(#gMoon)"/></svg>`;
+}
+function renderSunMoon(d,ti){
+  if(ti<0||!d.sunrise){$("sunmoon").innerHTML="";return}
+  const hm=t=>t?t.slice(11,16):"–",mp=moonPhase(new Date());
+  const len=d.sunrise[ti]&&d.sunset[ti]?(new Date(d.sunset[ti])-new Date(d.sunrise[ti]))/36e5:null;
+  const next=mp.f<.5?`Llena el ${mp.nextFull.getDate()} de ${MONTHSL[mp.nextFull.getMonth()]}`:`Nueva el ${mp.nextNew.getDate()} de ${MONTHSL[mp.nextNew.getMonth()]}`;
+  $("sunmoon").innerHTML=`<div class="stat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="15" r="5" fill="url(#gSun)"/><path d="M3 20h18" style="stroke:var(--muted)" stroke-width="1.6" stroke-linecap="round"/><path d="M12 3v4M9.500 5.500 12 3l2.500 2.500" style="stroke:var(--sun)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><b class="num">${hm(d.sunrise[ti])}</b><span>Sale el sol</span></div>
+    <div class="stat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="15" r="5" fill="url(#gSun)"/><path d="M3 20h18" style="stroke:var(--muted)" stroke-width="1.6" stroke-linecap="round"/><path d="M12 3v4M9.500 4.500 12 7l2.500-2.500" style="stroke:var(--sun)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><b class="num">${hm(d.sunset[ti])}</b><span>Se pone${len?` · ${Math.floor(len)} h ${Math.round(len%1*60)} min de luz`:""}</span></div>
+    <div class="stat">${moonSvg(mp.f)}<b>${mp.name}</b><span>${mp.ill} % iluminada · ${next}</span></div>`;
+}
+function renderDust(j){
+  const h=j&&j.hourly;if(!h||!h.dust){$("dustAlert").innerHTML="";return}
+  const now=new Date(),today=ymd(now),by={};
+  h.time.forEach((t,i)=>{const v=h.dust[i];if(v==null||new Date(t)<now-36e5)return;const d=t.slice(0,10);by[d]=Math.max(by[d]||0,v)});
+  const days=Object.keys(by).filter(d=>by[d]>=DUST_LIMIT).slice(0,3).map(d=>{const dd=daysBetween(today,d);return dd===0?"hoy":dd===1?"mañana":"el "+DOWL[new Date(utc(d)).getUTCDay()]});
+  S.dust=days;
+  $("dustAlert").innerHTML=days.length?`<div class="alert dust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 8h3M18 8h3M3 16h5M16 16h5M5 12h1M18 12h1"/></svg><span>Posible calima (polvo en el aire): ${days.join(", ")}</span></div>`:"";
 }
 function renderComing(){
   $("coming").textContent=S.next10==null?"":S.next10>=0.5?`La previsión da unos ${fmt(S.next10,0)} L/m² más en los próximos ${S.nDays} días.`:`La previsión no da lluvia en los próximos ${S.nDays} días.`;
@@ -728,7 +799,7 @@ function buildShare(){
     L.push(`Ahora: ${fmt(c.temperature_2m,0)}° · ${WMO[c.weather_code]||""}`);
     if(ti>=0)L.push(`Hoy: máx ${fmt(d.temperature_2m_max[ti],0)}° / mín ${fmt(d.temperature_2m_min[ti],0)}°`);
     L.push(`🌧️ Próximas 48 h: ${rainSummary(j).short}`);
-    if(S.frost&&S.frost.length)L.push(`❄️ Riesgo de helada: ${S.frost.join(", ")}`)}
+    if(S.frost&&S.frost.length)L.push(`❄️ Riesgo de helada: ${S.frost.join(", ")}`);if(S.hot&&S.hot.length)L.push(`🌡️ Calor fuerte: ${S.hot.join(", ")}`);if(S.dust&&S.dust.length)L.push(`🌫️ Posible calima: ${S.dust.join(", ")}`)}
   if(S.cur){let t=`💧 Lluvia campaña ${campLabel(S.sy)} (desde 1 sep): *${fmt(S.total)} l/m²*`;
     if(S.vsMean&&S.vsMean.pct!==0)t+=` (${Math.abs(S.vsMean.pct)} % por ${S.vsMean.pct>0?"encima":"debajo"} de lo normal)`;L.push(t);
     if(S.lastEp)L.push(`Última lluvia: ${S.lastEp.dtxt}, ${fmt(S.lastEp.s)} l/m²`)}
