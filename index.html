@@ -375,6 +375,7 @@ const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"N
  61:"Lluvia débil",63:"Lluvia",65:"Lluvia fuerte",66:"Lluvia helada",67:"Lluvia helada",
  71:"Nieve débil",73:"Nieve",75:"Nieve fuerte",77:"Granizo fino",80:"Chubascos débiles",81:"Chubascos",82:"Chubascos fuertes",
  85:"Chubascos de nieve",86:"Chubascos de nieve",95:"Tormenta",96:"Tormenta con granizo",99:"Tormenta con granizo"};
+const WIND_GUST=70, WIND_MEAN=40; // km/h: racha máxima o viento medio a partir de los que se avisa
 const DUST_LIMIT=100; // µg/m³ de polvo en superficie; por encima suele notarse calima
 const ERA5_FACTOR=0.89; // validado con 6 estaciones y 15 años de la estación del pueblo
 const ENS_MODELS=["icon_seamless","ecmwf_ifs025","meteofrance_seamless","gfs_seamless","ukmo_seamless"];
@@ -435,7 +436,7 @@ async function loadAll(){
   const pF=getJSON("https://api.open-meteo.com/v1/forecast?"+q({latitude:LAT,longitude:LON,timezone:TZ,past_days:1,forecast_days:10,
     current:"temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day",
     hourly:"temperature_2m,precipitation_probability,precipitation,wind_gusts_10m,weather_code,is_day",
-    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,sunrise,sunset"}))
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,wind_speed_10m_max,sunrise,sunset"}))
     .then(j=>{store("dm-fc",JSON.stringify(j));return j})
     .catch(()=>{try{const o=store("dm-fc");if(o){S.fromCache.push("previsión");return JSON.parse(o)}}catch(e){}return null});
 
@@ -532,9 +533,9 @@ function renderToday(){
   const al=[],fr=[],wi=[];
   for(let i=ti;i>=0&&i<Math.min(ti+4,d.time.length);i++){const x=new Date(utc(d.time[i]));const nm=i===ti?"hoy":i===ti+1?"mañana":"el "+DOWL[x.getUTCDay()];
     if(d.temperature_2m_min[i]<=0)fr.push(`${nm} (${fmt(d.temperature_2m_min[i],0)}°)`);
-    if(d.wind_gusts_10m_max[i]>=60)wi.push(`${nm} (${fmt(d.wind_gusts_10m_max[i],0)} km/h)`)}
+    const wm=(d.wind_speed_10m_max||[])[i],wg=d.wind_gusts_10m_max[i];if(wg>=WIND_GUST||wm>=WIND_MEAN)wi.push(`${nm}: viento de ${fmt(wm,0)} km/h con rachas de hasta ${fmt(wg,0)} km/h`)}
   if(fr.length)al.push(`<div class="alert frost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v20M3.300 7l17.400 10M20.700 7 3.300 17M9 4l3 3 3-3M9 20l3-3 3 3"/></svg><span>Riesgo de helada: ${fr.join(", ")}</span></div>`);
-  if(wi.length)al.push(`<div class="alert wind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3M3 12h7"/></svg><span>Viento fuerte: ${wi.join(", ")}</span></div>`);
+  if(wi.length)al.push(`<div class="alert wind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3M3 12h7"/></svg><span>Viento fuerte ${wi.join("; ")}</span></div>`);
   const hot=[];for(let i=ti;i>=0&&i<Math.min(ti+4,d.time.length);i++){const x=new Date(utc(d.time[i]));const nm=i===ti?"hoy":i===ti+1?"mañana":"el "+DOWL[x.getUTCDay()];if(d.temperature_2m_max[i]>=38)hot.push(`${nm} (${fmt(d.temperature_2m_max[i],0)}°)`)}
   if(hot.length)al.push(`<div class="alert hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M14 14.800V4a2 2 0 0 0-4 0v10.800a4 4 0 1 0 4 0z"/></svg><span>Calor fuerte: ${hot.join(", ")}</span></div>`);
   $("alerts").innerHTML=al.join("");S.frost=fr;S.hot=hot;
