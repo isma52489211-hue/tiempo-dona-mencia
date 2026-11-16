@@ -163,6 +163,10 @@ section.tab{display:grid;gap:1.4rem}
 .alert.hot{background:var(--hot-soft);color:var(--hot)}
 .alert.dust{background:#f3e6cf;color:#8a5a14}
 @media (prefers-color-scheme:dark){.alert.dust{background:#3a2e1a;color:#e8b86a}}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.alert.since{background:var(--rain-soft);color:var(--rain);font-size:1.05rem}
+.tdh{font-size:1.1rem;line-height:1.45}
+.tdh b{font-family:var(--display);font-weight:400;font-size:1.5rem;color:var(--rain)}
 .btn.radar{background:var(--surface);color:var(--rain)}
 .stat b{display:block;font-family:var(--display);font-weight:400;font-size:1.55rem;line-height:1.1}
 .stat span{font-size:.8rem;color:var(--muted);line-height:1.3;display:block;margin-top:.15rem}
@@ -266,6 +270,7 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
 
   <!-- HOY -->
   <section class="tab" id="tab-hoy">
+    <div id="since" class="alert since" hidden></div>
     <div id="alerts" style="display:grid;gap:.6rem"></div>
     <div id="dustAlert"></div>
     <div class="block" aria-labelledby="h-48">
@@ -277,11 +282,21 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
     <a class="btn radar" href="https://www.aemet.es/es/eltiempo/observacion/radar" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/></svg>
       Ver el radar de lluvia en directo</a>
+    <div class="btnrow">
+      <a class="btn radar" href="https://www.eltiempo.es/dona-mencia.html" target="_blank" rel="noopener">Ver en ElTiempo.es</a>
+      <button class="btn radar" id="speak" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        <span id="speakTxt">Escuchar el parte</span></button>
+    </div>
     <div class="sharebox">
       <a class="btn wa" id="wa" href="#" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-13.500 7.800L3 21l1.300-4.300A9 9 0 1 1 21 12z"/></svg>
         Enviar el parte por WhatsApp</a>
       <button class="btn" id="copy" type="button">Copiar</button>
+    </div>
+    <div class="card" aria-labelledby="h-tdh" id="tdhCard" hidden>
+      <h2 id="h-tdh">Tal día como hoy</h2>
+      <p class="tdh" id="tdh"></p>
     </div>
     <div class="card" aria-labelledby="h-sun">
       <h2 id="h-sun">Sol y luna</h2>
@@ -619,7 +634,7 @@ function renderCampaign(){
     $("vs").className="vs "+(diff>=0?"up":"down");
     $("vs").textContent=Math.abs(diff)<1?"Vamos igual que un año normal a estas fechas.":`${fmt(Math.abs(diff),0)} litros ${diff>=0?"más":"menos"} de lo normal a estas fechas (${pct>0?"+":"−"}${Math.abs(pct)} %).`;
   } else {$("vs").className="vs";$("vs").textContent=S.hist?"":"Sin datos de otros años para comparar."}
-  drawGauge();renderRecent(td);renderComing();renderCurio();renderMonths();renderPicker();renderCmpTable();drawChart();
+  drawGauge();renderRecent(td);renderComing();renderCurio();renderSince();renderTDH();renderMonths();renderPicker();renderCmpTable();drawChart();
 }
 function drawGauge(){
   const total=S.total,m=S.vsMean?S.vsMean.m:null,full=S.mean?S.mean[364]:null;
@@ -690,6 +705,26 @@ function renderDust(j){
   const days=Object.keys(by).filter(d=>by[d]>=DUST_LIMIT).slice(0,3).map(d=>{const dd=daysBetween(today,d);return dd===0?"hoy":dd===1?"mañana":"el "+DOWL[new Date(utc(d)).getUTCDay()]});
   S.dust=days;
   $("dustAlert").innerHTML=days.length?`<div class="alert dust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 8h3M18 8h3M3 16h5M16 16h5M5 12h1M18 12h1"/></svg><span>Posible calima (polvo en el aire): ${days.join(", ")}</span></div>`:"";
+}
+function renderSince(){
+  let last=null;try{last=store("dm-visit")}catch(e){}
+  const d=S.curDaily,n=d.length,today=ymd(new Date());if(!n)return;
+  if(last&&last<today){const k0=Math.max(0,daysBetween(S.startS,last));let sum=0;for(let k=k0;k<n;k++)sum+=d[k]||0;
+    const dd=daysBetween(last,today),when=dd===1?"ayer":dd<7?"el "+DOWL[new Date(utc(last)).getUTCDay()]:`el ${new Date(utc(last)).getUTCDate()} de ${MONTHSL[new Date(utc(last)).getUTCMonth()]}`;
+    $("since").innerHTML=sum>=0.5?`Desde que miraste ${when} han caído <b>&nbsp;${fmt(sum)} litros</b>.`:`Desde que miraste ${when} no ha llovido.`;$("since").hidden=false}
+  store("dm-visit",today);
+}
+function renderTDH(){
+  if(!S.hist||!S.hist.daily){$("tdhCard").hidden=true;return}
+  const now=new Date(),md=pad(now.getMonth()+1)+"-"+pad(now.getDate()),t=S.hist.daily.time,v=S.hist.daily.precipitation_sum;
+  let best=null,dry=0,tot=0;
+  t.forEach((x,i)=>{if(x.slice(5)===md&&v[i]!=null){tot++;const l=v[i]*ERA5_FACTOR;if(l>=1){if(!best||l>best.l)best={y:+x.slice(0,4),l}}else dry++}});
+  if(!tot){$("tdhCard").hidden=true;return}
+  $("tdh").innerHTML=best?`Tal día como hoy, en ${best.y}, cayeron <b>${fmt(best.l)} L</b> en Doña Mencía. Fue el ${now.getDate()} de ${MONTHSL[now.getMonth()]} más lluvioso de los últimos ${tot} años${dry?`; en ${dry} de esos años no llovió`:""}.`:`En los últimos ${tot} años, el ${now.getDate()} de ${MONTHSL[now.getMonth()]} no llovió nunca en Doña Mencía.`;
+  $("tdhCard").hidden=false;
+}
+function speakText(){
+  return (S.share||"").split("\n").filter(l=>l&&!l.startsWith("http")).join(". ").replace(/[*]/g,"").replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,"").replace(/l\/m²/g,"litros").replace(/L\/m²/g,"litros").replace(/(\d),(\d)/g,"$1 coma $2").replace(/°/g," grados").replace(/km\/h/g,"kilómetros por hora").replace(/ h\b/g," horas").replace(/máx/g,"máxima").replace(/mín/g,"mínima").replace(/prob\./g,"probabilidad").replace(/ %/g," por ciento").replace(/[·\/]/g,",").replace(/\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b(?!\w)/g,m=>"de "+MONTHSL[MONTHS.indexOf(m)]).replace(/\s+/g," ");
 }
 function renderComing(){
   $("coming").textContent=S.next10==null?"":S.next10>=0.5?`La previsión da unos ${fmt(S.next10,0)} L/m² más en los próximos ${S.nDays} días.`:`La previsión no da lluvia en los próximos ${S.nDays} días.`;
@@ -815,6 +850,12 @@ function buildShare(){
   S.share=L.join("\n");$("wa").href="https://wa.me/?text="+encodeURIComponent(S.share);
 }
 function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2200)}
+if("speechSynthesis" in window){$("speak").hidden=false;
+  $("speak").onclick=()=>{const ss=speechSynthesis;if(ss.speaking){ss.cancel();$("speakTxt").textContent="Escuchar el parte";return}
+    if(!S.share)return toast("Espera a que carguen los datos");
+    const u=new SpeechSynthesisUtterance(speakText());u.lang="es-ES";u.rate=.95;
+    const vs=ss.getVoices().filter(v=>v.lang&&v.lang.startsWith("es"));const es=vs.find(v=>v.lang==="es-ES")||vs[0];if(es)u.voice=es;
+    u.onend=u.onerror=()=>{$("speakTxt").textContent="Escuchar el parte"};$("speakTxt").textContent="Parar";ss.speak(u)}}
 $("copy").onclick=async()=>{if(!S.share)return toast("Espera a que carguen los datos");try{await navigator.clipboard.writeText(S.share);toast("Parte copiado")}catch(e){toast("No se pudo copiar")}};
 $("wa").addEventListener("click",e=>{if(!S.share){e.preventDefault();toast("Espera a que carguen los datos")}});
 
