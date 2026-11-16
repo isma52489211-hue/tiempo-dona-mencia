@@ -724,7 +724,7 @@ function renderTDH(){
   $("tdhCard").hidden=false;
 }
 function speakText(){
-  return (S.share||"").split("\n").filter(l=>l&&!l.startsWith("http")).join(". ").replace(/[*]/g,"").replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,"").replace(/l\/m²/g,"litros").replace(/L\/m²/g,"litros").replace(/(\d),(\d)/g,"$1 coma $2").replace(/°/g," grados").replace(/km\/h/g,"kilómetros por hora").replace(/ h\b/g," horas").replace(/máx/g,"máxima").replace(/mín/g,"mínima").replace(/prob\./g,"probabilidad").replace(/ %/g," por ciento").replace(/[·\/]/g,",").replace(/\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b(?!\w)/g,m=>"de "+MONTHSL[MONTHS.indexOf(m)]).replace(/\s+/g," ");
+  return (S.share||"").split("\n").filter(l=>l&&!l.startsWith("http")).join(". ").replace(/[*]/g,"").replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu,"").replace(/l\/m²/g,"litros").replace(/L\/m²/g,"litros").replace(/(\d),(\d)/g,"$1 coma $2").replace(/°/g," grados").replace(/km\/h/g,"kilómetros por hora").replace(/ h\b/g," horas").replace(/máx/g,"máxima").replace(/mín/g,"mínima").replace(/prob\./g,"probabilidad").replace(/ %/g," por ciento").replace(/(\d{4})\/(\d{2})/g,(m,x,y)=>x+" a 20"+y).replace(/[·\/]/g,",").replace(/\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b(?!\w)/g,m=>"de "+MONTHSL[MONTHS.indexOf(m)]).replace(/de de /g,"de ").replace(/\s+,/g,",").replace(/\s+/g," ");
 }
 function renderComing(){
   $("coming").textContent=S.next10==null?"":S.next10>=0.5?`La previsión da unos ${fmt(S.next10,0)} L/m² más en los próximos ${S.nDays} días.`:`La previsión no da lluvia en los próximos ${S.nDays} días.`;
