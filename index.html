@@ -344,7 +344,7 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
 
   <footer>
     <div id="stamp"></div>
-    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La lluvia de la campaña es una estimación que combina cinco modelos meteorológicos (alemán, europeo, francés, estadounidense y británico) para Doña Mencía; no es la lectura de un pluviómetro y en tormentas sueltas puede desviarse. Las campañas anteriores y «lo normal» salen del reanálisis ERA5, rebajado un 11 % porque aquí tiende a dar de más: sirven para ver la tendencia. Calima: polvo en suspensión según el servicio europeo Copernicus (CAMS), vía Open-Meteo. Radar: AEMET.</div>
+    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La lluvia de la campaña es una estimación del modelo meteorológico europeo ECMWF (9 km) para Doña Mencía, elegido por ser el que más se acerca a un pluviómetro del pueblo; no es una medición y en tormentas sueltas puede desviarse. Las campañas anteriores y «lo normal» salen del reanálisis ERA5, ajustado para que sea comparable con la cifra de esta campaña: sirven para ver la tendencia. Calima: polvo en suspensión según el servicio europeo Copernicus (CAMS), vía Open-Meteo. Radar: AEMET.</div>
   </footer>
 </main>
 
@@ -377,7 +377,7 @@ const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"N
  85:"Chubascos de nieve",86:"Chubascos de nieve",95:"Tormenta",96:"Tormenta con granizo",99:"Tormenta con granizo"};
 const WIND_GUST=70, WIND_MEAN=40; // km/h: racha máxima o viento medio a partir de los que se avisa
 const DUST_LIMIT=100; // µg/m³ de polvo en superficie; por encima suele notarse calima
-const ERA5_FACTOR=0.89; // validado con 6 estaciones y 15 años de la estación del pueblo
+const ERA5_FACTOR=0.97; // ERA5 ajustado al mismo nivel que el modelo ECMWF 9 km (comparados frente a 6 estaciones)
 const ENS_MODELS=["icon_seamless","ecmwf_ifs025","meteofrance_seamless","gfs_seamless","ukmo_seamless"];
 const YEAR_COLORS=["#c08a3e","#8e5bb5","#3f9c8a","#c4566b","#b5a33a","#d07a2c","#d46aa8","#5f8f5a","#7a6a58","#4f7fa8"];
 const TITLES={lluvia:"Adolfo, así va la lluvia",comparar:"Adolfo, ¿cómo íbamos otros años?"};
@@ -457,7 +457,14 @@ async function loadAll(){
     const j={daily:{time,precipitation_sum:sum},ens:{n:ok.length,lo,hi}};
     store("dm-ens2",JSON.stringify({s:startS,e:yestS,j}));return j;
   };
-  const pC=(yestS<startS?Promise.resolve({daily:{time:[],precipitation_sum:[]}}):ensemble().catch(single))
+  const ecmwf9=async()=>{
+    const [a,b]=await Promise.allSettled([getJSON("https://archive-api.open-meteo.com/v1/archive?"+q({...base,models:"ecmwf_ifs"})),single()]);
+    if(a.status!=="fulfilled"||!a.value.daily)throw new Error("sin ECMWF");
+    const d=a.value.daily,fb=b.status==="fulfilled"&&b.value.daily?b.value.daily:null;let filled=0;
+    const sum=d.time.map((t,i)=>{const v=d.precipitation_sum[i];if(v!=null||!fb)return v;const k=fb.time.indexOf(t);if(k>=0&&fb.precipitation_sum[k]!=null){filled++;return fb.precipitation_sum[k]}return null});
+    return {daily:{time:d.time,precipitation_sum:sum},src:"ecmwf9",filled};
+  };
+  const pC=(yestS<startS?Promise.resolve({daily:{time:[],precipitation_sum:[]}}):ecmwf9().catch(single))
     .then(j=>{store("dm-cur",JSON.stringify({s:startS,j}));return j})
     .catch(()=>{try{const o=JSON.parse(store("dm-cur")||"null");if(o&&o.s===startS){S.fromCache.push("lluvia");return o.j}}catch(e){}return null});
 
@@ -606,7 +613,7 @@ function renderCampaign(){
   if(en&&en.n>=3&&en.lo){const add=a=>a.reduce((x,v)=>x+(v||0),0)+(total-(curCum[cur.last]||0));
     const lo=Math.min(add(en.lo),total),hi=Math.max(add(en.hi),total);
     $("srcline").textContent=`Estimación combinando ${en.n} modelos meteorológicos.`+(hi-lo>=2?` Según los modelos, entre ${fmt(lo,0)} y ${fmt(hi,0)} L.`:"");
-  } else $("srcline").textContent="Estimación con un modelo meteorológico.";
+  } else $("srcline").textContent=S.cur.src==="ecmwf9"?"Estimación del modelo europeo ECMWF (9 km)."+(S.cur.filled?` Los últimos ${S.cur.filled} días, con otro modelo hasta que llegue su dato.`:""):"Estimación con un modelo meteorológico.";
   S.vsMean=null;
   if(mean&&li>=0){const m=mean[Math.min(li,364)],diff=total-m,pct=m>0?Math.round(diff/m*100):0;S.vsMean={diff,pct,m};
     $("vs").className="vs "+(diff>=0?"up":"down");
@@ -626,7 +633,7 @@ function drawGauge(){
   $("gauge").innerHTML=`<svg class="gauge" viewBox="0 0 ${W} ${H}" role="img" aria-label="Pluviómetro de la campaña: ${fmt(total)} litros por metro cuadrado">${t}</svg>`;
 }
 function renderRecent(td){
-  const RAIN_DAY=S.cur&&S.cur.ens?2:0.5;
+  const RAIN_DAY=S.cur&&S.cur.ens?2:1;
   const d=S.curDaily,startS=S.startS,n=d.length;
   let e=-1;for(let k=n-1;k>=0;k--){if((d[k]||0)>=RAIN_DAY){e=k;break}}
   let a1="Aún no ha llovido",a2="en esta campaña";S.lastEp=null;
@@ -642,7 +649,7 @@ function renderRecent(td){
     <div class="stat"><b class="num">${fmt(td.last24)} L/m²</b><span>Últimas 24 horas</span></div>`;
 }
 function renderCurio(){
-  const d=S.curDaily,n=d.length,startS=S.startS,RD=S.cur&&S.cur.ens?2:0.5;if(!n){$("curio").innerHTML="";return}
+  const d=S.curDaily,n=d.length,startS=S.startS,RD=S.cur&&S.cur.ens?2:1;if(!n){$("curio").innerHTML="";return}
   let mx=0,mi=-1,wet=0,last=-1;d.forEach((v,k)=>{if(v>mx){mx=v;mi=k}if(v>=RD){wet++;last=k}});
   const dd=k=>{const x=new Date(utc(startS)+k*864e5);return `${x.getUTCDate()} de ${MONTHSL[x.getUTCMonth()]}`};
   const items=[];
