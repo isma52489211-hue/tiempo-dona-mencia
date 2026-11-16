@@ -359,7 +359,7 @@ nav.tabs button[aria-current="page"]{background:var(--fg);color:var(--bg);font-w
 
   <footer>
     <div id="stamp"></div>
-    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La lluvia de la campaña es una estimación del modelo meteorológico europeo ECMWF (9 km) para Doña Mencía, elegido por ser el que más se acerca a un pluviómetro del pueblo; no es una medición y en tormentas sueltas puede desviarse. Las campañas anteriores y «lo normal» salen del reanálisis ERA5, ajustado para que sea comparable con la cifra de esta campaña: sirven para ver la tendencia. Calima: polvo en suspensión según el servicio europeo Copernicus (CAMS), vía Open-Meteo. Radar: AEMET.</div>
+    <div>Datos de <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0). La lluvia de la campaña es una estimación del modelo meteorológico europeo ECMWF (9 km) para Doña Mencía, elegido por ser el que más se acerca a un pluviómetro del pueblo; no es una medición y en tormentas sueltas puede desviarse. La previsión también es del modelo europeo ECMWF (9 km), el que usan AEMET y la mayoría de webs del tiempo. Las campañas anteriores y «lo normal» salen del reanálisis ERA5, ajustado para que sea comparable con la cifra de esta campaña: sirven para ver la tendencia. Calima: polvo en suspensión según el servicio europeo Copernicus (CAMS), vía Open-Meteo. Radar: AEMET.</div>
   </footer>
 </main>
 
@@ -448,10 +448,21 @@ async function loadAll(){
   const yestS=ymd(new Date(now.getFullYear(),now.getMonth(),now.getDate()-1));
   S.start=start; S.startS=startS; S.sy=sy;
 
-  const pF=getJSON("https://api.open-meteo.com/v1/forecast?"+q({latitude:LAT,longitude:LON,timezone:TZ,past_days:1,forecast_days:10,
+  // Previsión: modelo europeo ECMWF 9 km (el que usan AEMET y la mayoría de webs); lo que le falte, del modelo por defecto
+  const fq={latitude:LAT,longitude:LON,timezone:TZ,past_days:1,forecast_days:10,
     current:"temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day",
     hourly:"temperature_2m,precipitation_probability,precipitation,wind_gusts_10m,weather_code,is_day",
-    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,wind_speed_10m_max,sunrise,sunset"}))
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,wind_speed_10m_max,sunrise,sunset"};
+  const pF=Promise.allSettled([getJSON("https://api.open-meteo.com/v1/forecast?"+q({...fq,models:"ecmwf_ifs"})),getJSON("https://api.open-meteo.com/v1/forecast?"+q(fq))])
+    .then(([e,b])=>{
+      const E=e.status==="fulfilled"?e.value:null,Bm=b.status==="fulfilled"?b.value:null;
+      if(!E&&!Bm)throw new Error("sin previsión");if(!E)return Bm;if(!Bm)return E;
+      const out=JSON.parse(JSON.stringify(Bm));out.src="ecmwf9";
+      for(const sec of ["current","hourly","daily"]){if(!E[sec])continue;
+        for(const k in E[sec]){if(k==="time")continue;const ev=E[sec][k];
+          if(Array.isArray(ev)){if(!out[sec][k])continue;const bt=Bm[sec].time;out[sec][k]=bt.map((t,i)=>{const j=E[sec].time.indexOf(t),v=j>=0?ev[j]:null;return v!=null?v:Bm[sec][k][i]})}
+          else if(ev!=null)out[sec][k]=ev}}
+      return out})
     .then(j=>{store("dm-fc",JSON.stringify(j));return j})
     .catch(()=>{try{const o=store("dm-fc");if(o){S.fromCache.push("previsión");return JSON.parse(o)}}catch(e){}return null});
 
