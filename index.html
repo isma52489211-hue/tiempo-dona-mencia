@@ -391,6 +391,8 @@ const WMO={0:"Despejado",1:"Casi despejado",2:"Nubes y claros",3:"Nublado",45:"N
  71:"Nieve débil",73:"Nieve",75:"Nieve fuerte",77:"Granizo fino",80:"Chubascos débiles",81:"Chubascos",82:"Chubascos fuertes",
  85:"Chubascos de nieve",86:"Chubascos de nieve",95:"Tormenta",96:"Tormenta con granizo",99:"Tormenta con granizo"};
 const WIND_GUST=70, WIND_MEAN=40; // km/h: racha máxima o viento medio a partir de los que se avisa
+// AJUSTE MANUAL de Ismael (19/11/2026): el total de la campaña queda fijado en ANCHOR.v a esa fecha y desde ahí sigue contando el modelo. Poner null para quitarlo.
+const ANCHOR={d:"2026-11-19",v:120,txt:"19 de noviembre"};
 const DUST_LIMIT=100; // µg/m³ de polvo en superficie; por encima suele notarse calima
 const ERA5_FACTOR=0.97; // ERA5 ajustado al mismo nivel que el modelo ECMWF 9 km (comparados frente a 6 estaciones)
 const ENS_MODELS=["icon_seamless","ecmwf_ifs025","meteofrance_seamless","gfs_seamless","ukmo_seamless"];
@@ -620,6 +622,10 @@ function renderCampaign(){
   const todayIdx=td.today?daysBetween(startS,td.today):cur.last+1;
   const curCum=cur.cum.slice(), curDaily=cur.daily.slice(0,Math.max(cur.last+1,0));
   if(td.today&&todayIdx===curCum.length){curDaily[todayIdx]=td.mm;curCum.push((curCum[curCum.length-1]||0)+td.mm)}
+  const ai=ANCHOR?daysBetween(startS,ANCHOR.d):-1;
+  if(ai>=0){while(curDaily.length<=ai)curDaily.push(0);
+    const rebuild=()=>{curCum.length=0;let acc=0;curDaily.forEach(v=>{acc+=v;curCum.push(acc)})};
+    rebuild();const before=ai>0?curCum[ai-1]:0;curDaily[ai]=Math.max(0,ANCHOR.v-before);rebuild()}
   const total=curCum.length?curCum[curCum.length-1]:0, li=curCum.length-1;
   Object.assign(S,{total,curCum,curDaily,li});
 
@@ -634,7 +640,7 @@ function renderCampaign(){
   if(!S.selected)S.selected=new Set(["mean",prev[0]?String(prev[0].y):""]);
 
   $("total").textContent=fmt(total);
-  $("period").textContent=`Campaña ${campLabel(sy)} · desde el 1 de septiembre`;
+  $("period").textContent=`Campaña ${campLabel(sy)} · desde el 1 de septiembre`+(ai>=0?` · ajustada a ${fmt(ANCHOR.v,0)} L el ${ANCHOR.txt}`:"");
   const en=S.cur.ens;
   if(en&&en.n>=3&&en.lo){const add=a=>a.reduce((x,v)=>x+(v||0),0)+(total-(curCum[cur.last]||0));
     const lo=Math.min(add(en.lo),total),hi=Math.max(add(en.hi),total);
